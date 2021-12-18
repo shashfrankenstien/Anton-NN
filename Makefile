@@ -4,7 +4,7 @@ all: build
 build:
 	g++ -g nn.cpp anton.cpp -o anton
 
-run: build
+run: clean build
 	./anton
 
 clean:

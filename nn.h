@@ -46,17 +46,23 @@ inline double DTanH(double z)
 }
 
 
-inline double intialize_weight()
+inline double random_weights()
 {
     int r = rand();
     return (((double)r / (double)RAND_MAX) * 2) - 1; // random number between -1 and 1
 }
 
+inline double large_random_weights()
+{
+    int r = rand();
+    return (((double)r / (double)RAND_MAX) * 8) - 4; // random number between -4 and 4
+}
 
-// TODO: add cost function here and derivative of it
+
+// TODO: add cost function option and derivative of it here
 
 #ifndef INIT_WEIGHT_FUNC
-    #define INIT_WEIGHT_FUNC intialize_weight
+    #define INIT_WEIGHT_FUNC large_random_weights
 #endif
 #ifndef ACTIVATION_FUNC
     #define ACTIVATION_FUNC Sigmoid
@@ -66,7 +72,7 @@ inline double intialize_weight()
 #endif
 
 #ifndef BIAS
-    #define BIAS 0.7
+    #define BIAS 0.5
 #endif
 #ifndef LEARNING_RATE
     #define LEARNING_RATE 2
