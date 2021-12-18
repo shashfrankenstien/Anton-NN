@@ -14,7 +14,7 @@ void generate_training_data(std::vector<std::vector<double>> &inputs, std::vecto
     double A, B;
     for (int i = 0; i < 10000; i++) {
         A = i % 2;
-        B = (i % 3 == 0) ? 1 - B : B;
+        B = (i % 2 == 0) ? 1 - B : B;
 
         inputs.push_back({A, B});
 

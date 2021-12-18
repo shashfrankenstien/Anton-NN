@@ -50,7 +50,7 @@ void Neuron::activate()
             m_sum_val += (*m_prev_layer)[n].get_activation_for(m_idx);
         }
         // activate and set value!!
-        m_activation_val = ACTIVATION_FUNC(m_sum_val - BIAS); // TODO: need to add some bias here
+        m_activation_val = ACTIVATION_FUNC(m_sum_val - BIAS);
     }
 }
 
@@ -59,7 +59,7 @@ void Neuron::calc_output_gradient(double target)
 {
     // assuming our cost function is sum of squared errors,
     //  derivative of this wrt current neurons activation value will be -
-    m_gradient = -2* (target - m_activation_val) * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
+    m_gradient = -2 * (target - m_activation_val) * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
     printf("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
 }
 

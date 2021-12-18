@@ -66,10 +66,10 @@ inline double intialize_weight()
 #endif
 
 #ifndef BIAS
-    #define BIAS 0.5
+    #define BIAS 0.7
 #endif
 #ifndef LEARNING_RATE
-    #define LEARNING_RATE 1
+    #define LEARNING_RATE 2
 #endif
 
 // ****************** Neuron ******************
