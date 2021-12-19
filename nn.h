@@ -76,7 +76,7 @@ inline double large_random_weights()
     #define BIAS 0.5
 #endif
 #ifndef LEARNING_RATE
-    #define LEARNING_RATE 0.2
+    #define LEARNING_RATE 0.1
 #endif
 
 // ****************** Neuron ******************

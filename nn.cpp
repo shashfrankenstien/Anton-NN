@@ -162,7 +162,7 @@ void Net::back_propagate(std::vector<double> &out)
     m_avg_abs_error = 0;
     for (unsigned n = 0; n < output_layer.size(); n++) {
         double delta = out[n] - output_layer[n].get_value();
-        m_error += delta*delta;
+        m_error += delta;
         m_avg_abs_error += abs(delta);
         // calculate output gradients while we're looping
         output_layer[n].calc_output_gradient(out[n]);
@@ -201,7 +201,7 @@ void Net::show(std::vector<double> &expected_output) const
         printf("%c ", (bin_out!=expected_output[n]) ? 'x' : ' ');
         overall_success = overall_success && (bin_out==expected_output[n]);
     }
-    printf("ERR: %3.4f %3.4f %c\n", m_avg_abs_error*100, m_error, (overall_success? '-': 'x'));
+    printf("ERR: %3.4f %3.4f %c\n", m_avg_abs_error*100, -2*m_error, (overall_success? '-': 'x'));
 }
 
 
