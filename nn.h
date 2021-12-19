@@ -78,6 +78,9 @@ inline double large_random_weights()
 #ifndef LEARNING_RATE
     #define LEARNING_RATE 0.1
 #endif
+#ifndef MOMENTUM_ALPHA
+    #define MOMENTUM_ALPHA 0
+#endif
 
 // ****************** Neuron ******************
 
@@ -92,7 +95,7 @@ class Neuron
         void activate();
         void calc_output_gradient(double sum_errors);
         void calc_hidden_gradient();
-        void adjust_prev_weights();
+        void adjust_input_weights();
 
 
     private:
@@ -104,6 +107,7 @@ class Neuron
         double m_activation_val;
         double m_gradient;
         std::vector<double> m_conn_weights;
+        std::vector<double> m_old_conn_weight_deltas;
 
         double get_activation_for(unsigned neuron_idx) const;
 

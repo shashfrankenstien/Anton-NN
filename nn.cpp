@@ -23,6 +23,7 @@ m_activation_val(0)
     for (int i=0; i<next_layer_size; i++) {
         double w = INIT_WEIGHT_FUNC();
         m_conn_weights.push_back(w);
+        m_old_conn_weight_deltas.push_back(0);
         debug_print("\t\tw: %f\n", w);
     }
 }
@@ -81,19 +82,21 @@ void Neuron::calc_hidden_gradient()
     }
 }
 
-void Neuron::adjust_prev_weights()
+void Neuron::adjust_input_weights()
 {
     // adjust previous layer weights based on calculated gradient and learning rate
+    // since we are using stochastic gradient decent, we add in some momentum using m_old_conn_weight_deltas to reduce noisy adjustments
     if (m_prev_layer!=NULL) {
         for (unsigned n=0; n<m_prev_layer->size(); n++) {
             Neuron &p_neuron = (*m_prev_layer)[n];
-
+            double old_weight_delta = p_neuron.m_old_conn_weight_deltas[m_idx];
             // we're using learning rate, previous neuron activation and current gradient
-            // think about momentum
-            double delta_weight = LEARNING_RATE * p_neuron.get_value() * m_gradient;
+            double new_delta_weight = (LEARNING_RATE * p_neuron.get_value() * m_gradient)
+                                + (MOMENTUM_ALPHA * old_weight_delta); // include an additional factor in the direction of previous adjustment
 
-            debug_print("\tadj: %dx%d - %f - (%f) = ", p_neuron.m_idx, m_idx, p_neuron.m_conn_weights[m_idx], delta_weight);
-            p_neuron.m_conn_weights[m_idx] -= delta_weight;
+            debug_print("\tadj: %dx%d - %f - (%f) = ", p_neuron.m_idx, m_idx, p_neuron.m_conn_weights[m_idx], new_delta_weight);
+            p_neuron.m_conn_weights[m_idx] -= new_delta_weight;
+            p_neuron.m_old_conn_weight_deltas[m_idx] = new_delta_weight;
             debug_print("%f\n", p_neuron.m_conn_weights[m_idx]);
         }
     }
@@ -181,7 +184,7 @@ void Net::back_propagate(std::vector<double> &out)
     // adjust previous layer weights going from last layer
     for (unsigned l = m_layers.size() - 1; l > 0; l-- ) {
         for (unsigned n = 0; n < m_layers[l].size(); n++) {
-            m_layers[l][n].adjust_prev_weights();
+            m_layers[l][n].adjust_input_weights();
         }
         debug_print("\n");
     }

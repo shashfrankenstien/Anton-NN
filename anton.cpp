@@ -134,12 +134,12 @@ int main()
     fetch_mnist_digits(test_inputs, test_outputs, 240000);
 
     // length of 'layers' variable describes number of layers, each element describes number of neurons in the layer
-    std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 50, 20, 16, 16, 16, (unsigned)test_outputs[0].size()};
+    std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 16, (unsigned)test_outputs[0].size()};
     Net myNet(layers);
 
-    int rerun = 5;
+    int repetitions = 5;
 
-    for (int r = 1; r <= rerun; r++) {
+    for (int r = 1; r <= repetitions; r++) {
         for (unsigned i = 0; i < test_inputs.size(); i++) {
             myNet.feed_forward(test_inputs[i]); // feed forward??
 
