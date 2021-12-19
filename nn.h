@@ -6,6 +6,7 @@
 #include <cassert> //assert
 #include <cmath>
 
+#define PRINT_DEBUG_MSGS false
 
 #define MIN(a, b) ((a<b)?a:b)
 #define MAX(a, b) ((a>b)?a:b)
@@ -75,7 +76,7 @@ inline double large_random_weights()
     #define BIAS 0.5
 #endif
 #ifndef LEARNING_RATE
-    #define LEARNING_RATE 2
+    #define LEARNING_RATE 0.2
 #endif
 
 // ****************** Neuron ******************
@@ -120,10 +121,11 @@ class Net
         void feed_forward(const std::vector<double> &inp);
         void back_propagate(std::vector<double> &out);
 
-        void show() const;
+        void show(std::vector<double> &expected_output) const;
 
     private:
         std::vector<Layer> m_layers;
         double m_error;
+        double m_avg_abs_error;
 
 };

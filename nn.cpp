@@ -7,6 +7,9 @@
 #include "nn.h"
 
 
+#define debug_print(...) \
+            do { if (PRINT_DEBUG_MSGS) printf( __VA_ARGS__); } while (0)
+
 // ****************** Neuron ******************
 
 
@@ -20,7 +23,7 @@ m_activation_val(0)
     for (int i=0; i<next_layer_size; i++) {
         double w = INIT_WEIGHT_FUNC();
         m_conn_weights.push_back(w);
-        printf("\t\tw: %f\n", w);
+        debug_print("\t\tw: %f\n", w);
     }
 }
 
@@ -60,7 +63,7 @@ void Neuron::calc_output_gradient(double target)
     // assuming our cost function is sum of squared errors,
     //  derivative of this wrt current neurons activation value will be -
     m_gradient = -2 * (target - m_activation_val) * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
-    printf("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
+    debug_print("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
 }
 
 void Neuron::calc_hidden_gradient()
@@ -74,7 +77,7 @@ void Neuron::calc_hidden_gradient()
             sum += m_conn_weights[n] * (*m_next_layer)[n].m_gradient;
 
         m_gradient = sum * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
-        printf("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
+        debug_print("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
     }
 }
 
@@ -89,9 +92,9 @@ void Neuron::adjust_prev_weights()
             // think about momentum
             double delta_weight = LEARNING_RATE * p_neuron.get_value() * m_gradient;
 
-            printf("\tadj: %dx%d - %f - (%f) = ", p_neuron.m_idx, m_idx, p_neuron.m_conn_weights[m_idx], delta_weight);
+            debug_print("\tadj: %dx%d - %f - (%f) = ", p_neuron.m_idx, m_idx, p_neuron.m_conn_weights[m_idx], delta_weight);
             p_neuron.m_conn_weights[m_idx] -= delta_weight;
-            printf("%f\n", p_neuron.m_conn_weights[m_idx]);
+            debug_print("%f\n", p_neuron.m_conn_weights[m_idx]);
         }
     }
 }
@@ -101,6 +104,7 @@ void Neuron::adjust_prev_weights()
 
 
 Net::Net(const std::vector<unsigned> &layers)
+: m_error(0)
 {
     unsigned num_layers = layers.size();
 
@@ -112,7 +116,7 @@ Net::Net(const std::vector<unsigned> &layers)
     // create Neurons in each layer
     // we do this as a separate loop so that we can pass pointers to prev and next layers to Neurons
     for (unsigned layer_idx=0; layer_idx<num_layers; layer_idx++) {
-        printf("Layer %d\n", layer_idx);
+        debug_print("Layer %d\n", layer_idx);
 
         Layer *prev_layer = (layer_idx==0) ? NULL : &m_layers[layer_idx-1];
         Layer *next_layer = (layer_idx==num_layers-1) ? NULL : &m_layers[layer_idx+1];
@@ -121,16 +125,16 @@ Net::Net(const std::vector<unsigned> &layers)
 
         for (unsigned neur_idx=0; neur_idx<layers[layer_idx]; neur_idx++) {
             m_layers[layer_idx].push_back(Neuron(neur_idx, prev_layer, next_layer, next_layer_size));
-            printf("\tCreated Neuron %d\n", neur_idx);
+            debug_print("\tCreated Neuron %d\n", neur_idx);
         }
-        printf("\n");
+        debug_print("\n");
     }
 }
 
 
 void Net::feed_forward(const std::vector<double> &inp)
 {
-    printf("feed fwd\n");
+    debug_print("feed fwd\n");
     Layer &input_layer = m_layers.front();
     assert(inp.size() == input_layer.size()); // input vector should be of the same size as the num nodes in first layer
 
@@ -149,28 +153,29 @@ void Net::feed_forward(const std::vector<double> &inp)
 
 void Net::back_propagate(std::vector<double> &out)
 {
-    printf("back prop\n");
+    debug_print("back prop\n");
     // calculate overall cost using sum of squared errors
     Layer &output_layer = m_layers.back();
 
     assert(out.size() == output_layer.size());
 
-    m_error = 0;
+    m_avg_abs_error = 0;
     for (unsigned n = 0; n < output_layer.size(); n++) {
         double delta = out[n] - output_layer[n].get_value();
         m_error += delta*delta;
-
+        m_avg_abs_error += abs(delta);
         // calculate output gradients while we're looping
         output_layer[n].calc_output_gradient(out[n]);
     }
-    printf("\n");
+    m_avg_abs_error /= output_layer.size(); //average error
+    debug_print("\n");
 
     // calculate hidden gradients (starting at the last hidden layer, going to first)
     for (unsigned l = m_layers.size() - 2; l > 0; l-- ) {
         for (unsigned n = 0; n < m_layers[l].size(); n++) {
             m_layers[l][n].calc_hidden_gradient();
         }
-        printf("\n");
+        debug_print("\n");
     }
 
     // adjust previous layer weights going from last layer
@@ -178,19 +183,25 @@ void Net::back_propagate(std::vector<double> &out)
         for (unsigned n = 0; n < m_layers[l].size(); n++) {
             m_layers[l][n].adjust_prev_weights();
         }
-        printf("\n");
+        debug_print("\n");
     }
 }
 
 
-void Net::show() const
+void Net::show(std::vector<double> &expected_output) const
 {
-    printf("RES: ");
     const Layer &output_layer = m_layers.back();
+    assert(output_layer.size() == expected_output.size()); // input vector should be of the same size as the num nodes in first layer
+
+    bool overall_success = true;
+    printf("RES: ");
     for (unsigned n = 0; n < output_layer.size(); n++) {
-        printf("%f(%d) ", output_layer[n].get_value(), (output_layer[n].get_value()>=0.5) ? 1 : 0);
+        int bin_out = (output_layer[n].get_value()>=0.5) ? 1 : 0;
+        printf("%f(%d) ", output_layer[n].get_value(), bin_out);
+        printf("%c ", (bin_out!=expected_output[n]) ? 'x' : ' ');
+        overall_success = overall_success && (bin_out==expected_output[n]);
     }
-    printf("ERR: %f\n", m_error);
+    printf("ERR: %3.4f %3.4f %c\n", m_avg_abs_error*100, m_error, (overall_success? '-': 'x'));
 }
 
 
