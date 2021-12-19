@@ -81,7 +81,7 @@ void generate_ternary_xor_double_trouble(std::vector<std::vector<double>> &input
 
 
 #include "vendor/mnist/mnist_reader.hpp"
-#define EMNIST_DATA_DIR "/home/shashankgopikrishna/projects/Anton/data/EMNIST_Digits/New"
+#define EMNIST_DATA_DIR "./data/EMNIST_Digits"
 void uint8_breakdown(uint8_t val, std::vector<double> &res)
 {
     for (int i = 0; i < 4; i++) {
@@ -166,3 +166,5 @@ int main()
 
 
 // (time make run > ff.txt) |& awk '{print "Anton finished in", $5, "seconds"}' | tee >(spd-say -e) | while read OUTPUT; do notify-send "$OUTPUT"; done
+
+// tail -n 10000 ff.txt | grep RES | awk '{print $NF}' | less | sort | uniq -c
