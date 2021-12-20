@@ -138,25 +138,38 @@ int main()
     Net myNet(layers);
 
     int repetitions = 5;
+    std::vector<double> results_container;
+    double abs_avg_error;
 
     for (int r = 1; r <= repetitions; r++) {
         for (unsigned i = 0; i < test_inputs.size(); i++) {
             myNet.feed_forward(test_inputs[i]); // feed forward??
 
-            myNet.back_propagate(test_outputs[i]);
+            myNet.back_propagate_sgd(test_outputs[i]);
 
             printf("[%d] inp: ", i*r);
 
             printf("%d ", uint8_reconstruct(test_outputs[i]));
             // for (unsigned j = 0; j < test_inputs[i].size(); j++)
             //     printf("%d ", (int)test_inputs[i][j]);
-
             printf(" exp: ");
             for (unsigned j = 0; j < test_outputs[i].size(); j++)
                 printf("%d ", (int)test_outputs[i][j]);
 
             printf(" -> ");
-            myNet.show(test_outputs[i]);
+            results_container.clear();
+            abs_avg_error = 0;
+            myNet.get_results(results_container, abs_avg_error);
+            // myNet.show(test_outputs[i]);
+            bool overall_success = true;
+            printf("RES: ");
+            for (unsigned n = 0; n < results_container.size(); n++) {
+                int bin_out = (results_container[n]>=0.5) ? 1 : 0;
+                printf("%f(%d) ", results_container[n], bin_out);
+                printf("%c ", (bin_out!=test_outputs[i][n]) ? 'x' : ' ');
+                overall_success = overall_success && (bin_out==test_outputs[i][n]);
+            }
+            printf("ERR: %3.4f %c\n", abs_avg_error*100, (overall_success? '-': 'x'));
             // printf("**************\n");
         }
     }

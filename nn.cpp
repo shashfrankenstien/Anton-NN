@@ -38,20 +38,15 @@ double Neuron::get_value() const
     return m_activation_val;
 }
 
-double Neuron::get_activation_for(unsigned neuron_idx) const
-{
-    // combines neuron value with connection weight for the neuron from the next layer requesting this value
-    return m_activation_val * m_conn_weights[neuron_idx];
-}
-
 
 void Neuron::activate()
 {
     if (m_prev_layer != NULL) {
-        // grab values from previous layer
+        // combines neuron value with connection weight from neurons in the previous layer feeding current neuron
         m_sum_val = 0;
         for (unsigned n=0; n<m_prev_layer->size(); n++) {
-            m_sum_val += (*m_prev_layer)[n].get_activation_for(m_idx);
+            Neuron &prev_neuron = (*m_prev_layer)[n];
+            m_sum_val += (prev_neuron.m_activation_val * prev_neuron.m_conn_weights[m_idx]);
         }
         // activate and set value!!
         m_activation_val = ACTIVATION_FUNC(m_sum_val - BIAS);
@@ -154,8 +149,11 @@ void Net::feed_forward(const std::vector<double> &inp)
 }
 
 
-void Net::back_propagate(std::vector<double> &out)
+void Net::back_propagate_sgd(std::vector<double> &out)
 {
+    // performs isolated stochastic gradient decent
+    // need to experiment with other methods
+
     debug_print("back prop\n");
     // calculate overall cost using sum of squared errors
     Layer &output_layer = m_layers.back();
@@ -191,42 +189,13 @@ void Net::back_propagate(std::vector<double> &out)
 }
 
 
-void Net::show(std::vector<double> &expected_output) const
+
+void Net::get_results(std::vector<double> &results, double &avg_abs_error) const
 {
     const Layer &output_layer = m_layers.back();
-    assert(output_layer.size() == expected_output.size()); // input vector should be of the same size as the num nodes in first layer
-
-    bool overall_success = true;
-    printf("RES: ");
     for (unsigned n = 0; n < output_layer.size(); n++) {
-        int bin_out = (output_layer[n].get_value()>=0.5) ? 1 : 0;
-        printf("%f(%d) ", output_layer[n].get_value(), bin_out);
-        printf("%c ", (bin_out!=expected_output[n]) ? 'x' : ' ');
-        overall_success = overall_success && (bin_out==expected_output[n]);
+        results.push_back(output_layer[n].get_value());
     }
-    printf("ERR: %3.4f %3.4f %c\n", m_avg_abs_error*100, -2*m_error, (overall_success? '-': 'x'));
+    avg_abs_error = m_avg_abs_error;
 }
 
-
-
-
-
-// ************************************
-
-// int main()
-// {
-//     srand(time(NULL));
-
-//     std::vector<unsigned> layers{2, 5, 1}; // first layer has 3 Neuron, second has 2 and last has 1
-//     Net myNet(layers);
-
-//     std::vector<double> inputs{1,1};
-//     myNet.feed_forward(inputs); // feed forward??
-
-//     std::vector<double> outputs{0};
-//     myNet.back_propagate(outputs);
-
-//     myNet.save();
-
-//     return 0;
-// }

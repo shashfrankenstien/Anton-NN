@@ -62,25 +62,14 @@ inline double large_random_weights()
 
 // TODO: add cost function option and derivative of it here
 
-#ifndef INIT_WEIGHT_FUNC
-    #define INIT_WEIGHT_FUNC large_random_weights
-#endif
-#ifndef ACTIVATION_FUNC
-    #define ACTIVATION_FUNC Sigmoid
-#endif
-#ifndef ACTIVATION_DERIVATIVE_FUNC
-    #define ACTIVATION_DERIVATIVE_FUNC DSigmoid
-#endif
+#define INIT_WEIGHT_FUNC large_random_weights
+#define ACTIVATION_FUNC Sigmoid
+#define ACTIVATION_DERIVATIVE_FUNC DSigmoid
 
-#ifndef BIAS
-    #define BIAS 0.5
-#endif
-#ifndef LEARNING_RATE
-    #define LEARNING_RATE 0.1
-#endif
-#ifndef MOMENTUM_ALPHA
-    #define MOMENTUM_ALPHA 0
-#endif
+#define BIAS 0.5
+#define LEARNING_RATE 0.1
+#define MOMENTUM_ALPHA 0
+
 
 // ****************** Neuron ******************
 
@@ -109,8 +98,6 @@ class Neuron
         std::vector<double> m_conn_weights;
         std::vector<double> m_old_conn_weight_deltas;
 
-        double get_activation_for(unsigned neuron_idx) const;
-
 };
 
 
@@ -123,9 +110,10 @@ class Net
         // ~Net();
 
         void feed_forward(const std::vector<double> &inp);
-        void back_propagate(std::vector<double> &out);
+        void back_propagate_sgd(std::vector<double> &out);
+        // void back_propagate_sgd_minibatch(std::vector<double> &out);
 
-        void show(std::vector<double> &expected_output) const;
+        void get_results(std::vector<double> &results, double &avg_abs_error) const;
 
     private:
         std::vector<Layer> m_layers;
