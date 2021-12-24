@@ -5,6 +5,7 @@
 #include <cmath>
 #include <string.h> // strncmp
 
+#include "conf.h"
 #include "nn.h"
 
 
