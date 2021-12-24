@@ -199,3 +199,8 @@ void Net::get_results(std::vector<double> &results, double &avg_abs_error) const
     avg_abs_error = m_avg_abs_error;
 }
 
+
+void Net::to_file(const std::string &filepath) const
+{
+
+}

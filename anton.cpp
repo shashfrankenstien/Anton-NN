@@ -3,7 +3,7 @@
 #include <stdlib.h> // srand and RAND_MAX
 #include <time.h> // timestamp as seed for srand()
 #include <cmath>
-
+#include <string.h> // strncmp
 
 #include "nn.h"
 
@@ -24,7 +24,7 @@ void generate_xor_data(std::vector<std::vector<double>> &inputs, std::vector<std
 
         double out = (double)Xor(A,B);
         outputs.push_back({out});
-        printf("%d ^ %d = %d\n", (int)A, (int)B, (int)out);
+        // printf("%d ^ %d = %d\n", (int)A, (int)B, (int)out);
     }
 }
 
@@ -39,7 +39,7 @@ void generate_xor_double_trouble(std::vector<std::vector<double>> &inputs, std::
 
         double out = (double)Xor(A,B);
         outputs.push_back({out, 1-out});
-        printf("%d ^ %d = %d %d\n", (int)A, (int)B, (int)out, (int)(1-out));
+        // printf("%d ^ %d = %d %d\n", (int)A, (int)B, (int)out, (int)(1-out));
     }
 }
 
@@ -60,7 +60,7 @@ void generate_ternary_xor_data(std::vector<std::vector<double>> &inputs, std::ve
 
         double out = (double)TernaryXor(A,B,C);
         outputs.push_back({out});
-        printf("%d ^ %d ^ %d = %d\n", (int)A, (int)B, (int)C, (int)out);
+        // printf("%d ^ %d ^ %d = %d\n", (int)A, (int)B, (int)C, (int)out);
     }
 }
 void generate_ternary_xor_double_trouble(std::vector<std::vector<double>> &inputs, std::vector<std::vector<double>> &outputs, unsigned n_samples)
@@ -75,7 +75,7 @@ void generate_ternary_xor_double_trouble(std::vector<std::vector<double>> &input
 
         double out = (double)TernaryXor(A,B,C);
         outputs.push_back({out, 1-out});
-        printf("%d ^ %d ^ %d = %d %d\n", (int)A, (int)B, (int)C, (int)out, (int)(1-out));
+        // printf("%d ^ %d ^ %d = %d %d\n", (int)A, (int)B, (int)C, (int)out, (int)(1-out));
     }
 }
 
@@ -119,39 +119,99 @@ void fetch_mnist_digits(std::vector<std::vector<double>> &inputs, std::vector<st
 }
 
 
+typedef enum {
+    XOR,
+    XOR2,
+    TXOR,
+    TXOR2,
+    MNIST
+} Test;
 
 
 
 
-
-int main()
+int main(int argc, char*argv[])
 {
-    srand(time(NULL));
+    if (argc <=1) {
+        printf("%d argc %s", argc, argv[0]);
+        return 1;
+    }
+    int opt_size = strnlen(argv[1], 10);
+    Test opt;
+
+    unsigned samp_size = 10000;
+    int repetitions = 2;
+
+    if (strncmp(argv[1], "xor", opt_size)==0) {
+        printf("xor\n");
+        opt = XOR;
+    } else if (strncmp(argv[1], "xor2", opt_size)==0) {
+        printf("xor2\n");
+        opt = XOR2;
+    } else if (strncmp(argv[1], "txor", opt_size)==0) {
+        printf("txor\n");
+        opt = TXOR;
+    } else if (strncmp(argv[1], "txor2", opt_size)==0) {
+        printf("txor2\n");
+        opt = TXOR2;
+    } else if (strncmp(argv[1], "mnist", opt_size)==0) {
+        printf("mnist\n");
+        opt = MNIST;
+        samp_size = 200000;
+        repetitions = 5;
+    } else {
+        printf("wrong\n");
+        return 2;
+    }
+
+    // srand(time(NULL));
+    srand(RANDOM_SEED);
 
     std::vector<std::vector<double>> test_inputs;
     std::vector<std::vector<double>> test_outputs;
 
-    fetch_mnist_digits(test_inputs, test_outputs, 240000);
+
+    switch (opt) {
+        case MNIST:
+            fetch_mnist_digits(test_inputs, test_outputs, samp_size);
+            break;
+        case XOR:
+            generate_xor_data(test_inputs, test_outputs, samp_size);
+            break;
+        case XOR2:
+            generate_xor_double_trouble(test_inputs, test_outputs, samp_size);
+            break;
+        case TXOR:
+            generate_ternary_xor_data(test_inputs, test_outputs, samp_size);
+            break;
+        case TXOR2:
+            generate_ternary_xor_double_trouble(test_inputs, test_outputs, samp_size);
+            break;
+        default:
+            return 1;
+    }
 
     // length of 'layers' variable describes number of layers, each element describes number of neurons in the layer
-    std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 16, (unsigned)test_outputs[0].size()};
+    std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 16, 16, (unsigned)test_outputs[0].size()};
     Net myNet(layers);
 
-    int repetitions = 5;
     std::vector<double> results_container;
     double abs_avg_error;
 
     for (int r = 1; r <= repetitions; r++) {
         for (unsigned i = 0; i < test_inputs.size(); i++) {
-            myNet.feed_forward(test_inputs[i]); // feed forward??
-
+            myNet.feed_forward(test_inputs[i]);
             myNet.back_propagate_sgd(test_outputs[i]);
 
             printf("[%d] inp: ", i*r);
 
-            printf("%d ", uint8_reconstruct(test_outputs[i]));
-            // for (unsigned j = 0; j < test_inputs[i].size(); j++)
-            //     printf("%d ", (int)test_inputs[i][j]);
+            if (opt==MNIST) {
+                printf("%d ", uint8_reconstruct(test_outputs[i]));
+            } else {
+                for (unsigned j = 0; j < test_inputs[i].size(); j++)
+                    printf("%d ", (int)test_inputs[i][j]);
+            }
+
             printf(" exp: ");
             for (unsigned j = 0; j < test_outputs[i].size(); j++)
                 printf("%d ", (int)test_outputs[i][j]);
@@ -160,7 +220,7 @@ int main()
             results_container.clear();
             abs_avg_error = 0;
             myNet.get_results(results_container, abs_avg_error);
-            // myNet.show(test_outputs[i]);
+
             bool overall_success = true;
             printf("RES: ");
             for (unsigned n = 0; n < results_container.size(); n++) {
@@ -176,8 +236,3 @@ int main()
 
     return 0;
 }
-
-
-// (time make run > ff.txt) |& awk '{print "Anton finished in", $5, "seconds"}' | tee >(spd-say -e) | while read OUTPUT; do notify-send "$OUTPUT"; done
-
-// tail -n 10000 ff.txt | grep RES | awk '{print $NF}' | less | sort | uniq -c

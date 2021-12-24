@@ -3,6 +3,7 @@
 #include <vector>
 #include <stdlib.h> // srand, rand and RAND_MAX
 #include <stdio.h> // printf
+#include <string>
 #include <cassert> //assert
 #include <cmath>
 
@@ -66,6 +67,7 @@ inline double large_random_weights()
 #define ACTIVATION_FUNC Sigmoid
 #define ACTIVATION_DERIVATIVE_FUNC DSigmoid
 
+#define RANDOM_SEED 0
 #define BIAS 0.5
 #define LEARNING_RATE 0.1
 #define MOMENTUM_ALPHA 0
@@ -111,9 +113,10 @@ class Net
 
         void feed_forward(const std::vector<double> &inp);
         void back_propagate_sgd(std::vector<double> &out);
-        // void back_propagate_sgd_minibatch(std::vector<double> &out);
 
         void get_results(std::vector<double> &results, double &avg_abs_error) const;
+
+        void to_file(const std::string &filepath) const;
 
     private:
         std::vector<Layer> m_layers;
