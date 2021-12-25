@@ -147,7 +147,7 @@ void Net<N>::back_propagate_sgd(std::vector<double> &out)
     for (unsigned n = 0; n < output_layer.size(); n++) {
         double delta = out[n] - output_layer[n].get_value();
         m_error += delta;
-        m_avg_abs_error += abs(delta);
+        m_avg_abs_error += fabs(delta);
         // calculate output gradients while we're looping
         output_layer[n].calc_output_gradient(out[n]);
     }
