@@ -194,17 +194,18 @@ int main(int argc, char*argv[])
 
     // length of 'layers' variable describes number of layers, each element describes number of neurons in the layer
     std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 16, 16, (unsigned)test_outputs[0].size()};
-    Net myNet(layers);
+    Net<Neuron> myNet(layers);
 
     std::vector<double> results_container;
     double abs_avg_error;
 
-    for (int r = 1; r <= repetitions; r++) {
+    unsigned counter = 0;
+    for (unsigned r = 1; r <= repetitions; r++) {
         for (unsigned i = 0; i < test_inputs.size(); i++) {
             myNet.feed_forward(test_inputs[i]);
             myNet.back_propagate_sgd(test_outputs[i]);
 
-            printf("[%d] inp: ", i*r);
+            printf("[%d] inp: ", counter++);
 
             if (opt==MNIST) {
                 printf("%d ", uint8_reconstruct(test_outputs[i]));

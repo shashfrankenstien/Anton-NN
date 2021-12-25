@@ -26,18 +26,38 @@ double Neuron::get_value() const
     return m_activation_val;
 }
 
+double Neuron::get_activation_for(unsigned other_idx) const
+{
+    return (m_activation_val * m_conn_weights[other_idx]);
+}
+
+void Neuron::adjust_weight_for(unsigned other_idx, double other_gradient)
+{
+    // adjust weights for other neuron on the next layer based on it's calculated gradient and learning rate
+    // since we are using stochastic gradient decent, we add in some momentum using m_old_conn_weight_deltas to reduce noisy adjustments
+    double old_weight_delta = m_old_conn_weight_deltas[other_idx];
+    // we're using learning rate, previous neuron activation and current gradient
+    double new_delta_weight = (LEARNING_RATE * m_activation_val * other_gradient)
+                        + (MOMENTUM_ALPHA * old_weight_delta); // include an additional factor in the direction of previous adjustment
+
+    debug_print("\tadj: %dx%d - %f - (%f) = ", m_idx, other_idx, m_conn_weights[other_idx], new_delta_weight);
+    m_conn_weights[other_idx] -= new_delta_weight;
+    m_old_conn_weight_deltas[other_idx] = new_delta_weight;
+    debug_print("%f\n", m_conn_weights[other_idx]);
+}
+
 
 void Neuron::activate()
 {
     if (m_prev_layer != NULL) {
         // combines neuron value with connection weight from neurons in the previous layer feeding current neuron
-        m_sum_val = 0;
+        double sum_val = 0;
         for (unsigned n=0; n<m_prev_layer->size(); n++) {
             Neuron &prev_neuron = (*m_prev_layer)[n];
-            m_sum_val += (prev_neuron.m_activation_val * prev_neuron.m_conn_weights[m_idx]);
+            sum_val += prev_neuron.get_activation_for(m_idx);
         }
         // activate and set value!!
-        m_activation_val = ACTIVATION_FUNC(m_sum_val - BIAS);
+        m_activation_val = ACTIVATION_FUNC(sum_val - BIAS);
     }
 }
 
@@ -67,20 +87,9 @@ void Neuron::calc_hidden_gradient()
 
 void Neuron::adjust_input_weights()
 {
-    // adjust previous layer weights based on calculated gradient and learning rate
-    // since we are using stochastic gradient decent, we add in some momentum using m_old_conn_weight_deltas to reduce noisy adjustments
     if (m_prev_layer!=NULL) {
         for (unsigned n=0; n<m_prev_layer->size(); n++) {
-            Neuron &p_neuron = (*m_prev_layer)[n];
-            double old_weight_delta = p_neuron.m_old_conn_weight_deltas[m_idx];
-            // we're using learning rate, previous neuron activation and current gradient
-            double new_delta_weight = (LEARNING_RATE * p_neuron.get_value() * m_gradient)
-                                + (MOMENTUM_ALPHA * old_weight_delta); // include an additional factor in the direction of previous adjustment
-
-            debug_print("\tadj: %dx%d - %f - (%f) = ", p_neuron.m_idx, m_idx, p_neuron.m_conn_weights[m_idx], new_delta_weight);
-            p_neuron.m_conn_weights[m_idx] -= new_delta_weight;
-            p_neuron.m_old_conn_weight_deltas[m_idx] = new_delta_weight;
-            debug_print("%f\n", p_neuron.m_conn_weights[m_idx]);
+            (*m_prev_layer)[n].adjust_weight_for(m_idx, m_gradient);
         }
     }
 }
