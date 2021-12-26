@@ -2,7 +2,7 @@
 all: build
 
 build:
-	g++ -g -I./include ./src/neuron.cpp anton.cpp -o anton
+	g++ -g -fsanitize=address -I./include ./src/neuron.cpp anton.cpp -o anton
 
 run: SHELL:=/bin/bash
 run: clean build
