@@ -1,4 +1,5 @@
 #include <vector>
+#include <deque>
 #include <stdio.h>
 #include <stdlib.h> // srand and RAND_MAX
 #include <time.h> // timestamp as seed for srand()
@@ -120,12 +121,30 @@ void fetch_mnist_digits(std::vector<std::vector<double>> &inputs, std::vector<st
 }
 
 
+void recurrent_bit_series(std::vector<std::vector<double>> &inputs, std::vector<std::vector<double>> &outputs, unsigned n_samples)
+{
+    std::deque<double> d = {1,0,1,0,0,0,1,0,1,0};
+    for (int i = 0; i < n_samples; i++) {
+
+        inputs.push_back({d[0], d[1], d[2]});
+        outputs.push_back({d[3], d[4],d[5]});
+
+        // rotate
+        double val = d.back();
+        d.pop_back();
+        d.push_front(val);
+    }
+}
+
+
+
 typedef enum {
     XOR,
     XOR2,
     TXOR,
     TXOR2,
-    MNIST
+    MNIST,
+    RNN
 } Test;
 
 
@@ -160,6 +179,11 @@ int main(int argc, char*argv[])
         opt = MNIST;
         samp_size = 200000;
         repetitions = 5;
+    } else if (strncmp(argv[1], "rnn", opt_size)==0) {
+        printf("rnn\n");
+        samp_size = 50000;
+        repetitions = 1;
+        opt = RNN;
     } else {
         printf("wrong\n");
         return 2;
@@ -188,13 +212,16 @@ int main(int argc, char*argv[])
         case TXOR2:
             generate_ternary_xor_double_trouble(test_inputs, test_outputs, samp_size);
             break;
+        case RNN:
+            recurrent_bit_series(test_inputs, test_outputs, samp_size);
+            break;
         default:
             return 1;
     }
 
     // length of 'layers' variable describes number of layers, each element describes number of neurons in the layer
     std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 16, 16, (unsigned)test_outputs[0].size()};
-    Net<Neuron> myNet(layers);
+    Net<RecurrentNeuron> myNet(layers);
 
     std::vector<double> results_container;
     double abs_avg_error;

@@ -59,28 +59,28 @@ class Neuron
 };
 
 
-// class RecurrentNeuron: public Neuron
-// {
-//     public:
-//         RecurrentNeuron(unsigned idx, Layer<RecurrentNeuron> *prev_layer, Layer<RecurrentNeuron> *next_layer, unsigned next_layer_size);
+class RecurrentNeuron: public Neuron
+{
+    public:
+        RecurrentNeuron(unsigned idx, Layer<RecurrentNeuron> *prev_layer, unsigned prev_layer_size, Layer<RecurrentNeuron> *next_layer, unsigned next_layer_size);
 
-//         void set_value(double val) override;
-//         void calc_hidden_gradient() override;
-//         void calc_output_gradient(double target) override;
+        void set_value(double val) override;
+        void calc_hidden_gradient() override;
+        void calc_output_gradient(double target) override;
 
-//     protected:
+    protected:
 
-//         double m_recur_activation_val;
-//         double m_recur_gradient;
-//         std::vector<double> m_recur_conn_weights;
-//         std::vector<double> m_recur_old_conn_weight_deltas;
+        double m_recur_activation_val;
+        double m_recur_gradient;
+        std::vector<double> m_recur_conn_weights;
+        std::vector<double> m_recur_old_conn_weight_deltas;
 
-//         double get_activation_for(Neuron* other) const override;
-//         void adjust_weight_for(Neuron* other) override;
+        double get_activation_for(Neuron* other) const override;
+        void adjust_weight_for(Neuron* other) override;
 
-//         RecurrentNeuron& get_next_layer_neuron(unsigned other_idx) override;
-//         RecurrentNeuron& get_prev_layer_neuron(unsigned other_idx) override;
-// };
+        RecurrentNeuron& get_next_layer_neuron(unsigned other_idx) override;
+        RecurrentNeuron& get_prev_layer_neuron(unsigned other_idx) override;
+};
 
 
 
