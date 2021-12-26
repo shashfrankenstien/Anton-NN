@@ -119,8 +119,8 @@ void Neuron::calc_hidden_gradient()
 
 RecurrentNeuron::RecurrentNeuron(unsigned idx, Layer<RecurrentNeuron> *prev_layer, unsigned prev_layer_size, Layer<RecurrentNeuron> *next_layer, unsigned next_layer_size)
 : Neuron(idx, (Layer<Neuron>*)prev_layer, prev_layer_size, (Layer<Neuron>*)next_layer, next_layer_size),
-m_recur_activation_val(0),
-m_recur_gradient(0)
+m_recur_activation_val(0)//,
+// m_recur_gradient(0)
 {
     for (int i=0; i<next_layer_size; i++) {
         double w = INIT_WEIGHT_FUNC();
@@ -152,33 +152,6 @@ double RecurrentNeuron::get_activation_for(Neuron* other) const
 }
 
 
-void RecurrentNeuron::calc_output_gradient(double target)
-{
-    Neuron::calc_output_gradient(target);
-    m_recur_gradient = m_gradient;
-}
-
-
-void RecurrentNeuron::calc_hidden_gradient()
-{
-    // to find how the hidden neuron influences the cost,
-    //  we need to sum up all derivatives of weights going out of the neuron, times derivative of current activation value.
-    //  this can be calculated by using the previously calculated gradients on the next layer.
-    if (m_next_layer_size != 0) {
-        double sum, sum_recur = 0;
-        for (unsigned n=0; n<m_next_layer_size; n++) {
-            auto &nxt_neuron = get_next_layer_neuron(n);
-            sum += m_conn_weights[n] * nxt_neuron.m_gradient;
-            sum_recur += m_recur_conn_weights[n] * nxt_neuron.m_recur_gradient;
-        }
-        m_gradient = sum * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
-        m_recur_gradient = sum_recur * ACTIVATION_DERIVATIVE_FUNC(m_recur_activation_val);
-        debug_print("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
-        debug_print("\tr_g: %d - %f:%f\n", m_idx, m_recur_activation_val, m_recur_gradient);
-    }
-}
-
-
 
 void RecurrentNeuron::adjust_weight_for(Neuron* other)
 {
@@ -199,7 +172,7 @@ void RecurrentNeuron::adjust_weight_for(Neuron* other)
     // now doing the same for recurrent part of the neuron
     old_weight_delta = m_recur_old_conn_weight_deltas[oth->m_idx];
     // we're using learning rate, previous neuron activation and current gradient
-    new_delta_weight = (LEARNING_RATE * m_recur_activation_val * oth->m_recur_gradient)
+    new_delta_weight = (LEARNING_RATE * m_recur_activation_val * oth->m_gradient)
                         + (MOMENTUM_ALPHA * old_weight_delta); // include an additional factor in the direction of previous adjustment
 
     debug_print("\tadj: %dx%d - %f - (%f) = ", m_idx, oth->m_idx, m_recur_conn_weights[oth->m_idx], new_delta_weight);

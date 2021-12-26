@@ -34,8 +34,8 @@ class Neuron
         void activate(); // feed forward action
         void adjust_input_weights(); // back prop action
 
-        virtual void calc_output_gradient(double target);
-        virtual void calc_hidden_gradient();
+        void calc_output_gradient(double target);
+        void calc_hidden_gradient();
 
     protected:
         Layer<Neuron>* m_prev_layer;
@@ -65,13 +65,10 @@ class RecurrentNeuron: public Neuron
         RecurrentNeuron(unsigned idx, Layer<RecurrentNeuron> *prev_layer, unsigned prev_layer_size, Layer<RecurrentNeuron> *next_layer, unsigned next_layer_size);
 
         void set_value(double val) override;
-        void calc_hidden_gradient() override;
-        void calc_output_gradient(double target) override;
 
     protected:
 
         double m_recur_activation_val;
-        double m_recur_gradient;
         std::vector<double> m_recur_conn_weights;
         std::vector<double> m_recur_old_conn_weight_deltas;
 

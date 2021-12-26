@@ -123,11 +123,11 @@ void fetch_mnist_digits(std::vector<std::vector<double>> &inputs, std::vector<st
 
 void recurrent_bit_series(std::vector<std::vector<double>> &inputs, std::vector<std::vector<double>> &outputs, unsigned n_samples)
 {
-    std::deque<double> d = {1,0,1,0,0,0,1,0,1,0};
+    std::deque<double> d = {1,0,1,0,0,0,1,0,1,0,1,1,0,1,1,1,1,0,1,1,1,0,1,0,1,0,1};
     for (int i = 0; i < n_samples; i++) {
 
-        inputs.push_back({d[0], d[1], d[2]});
-        outputs.push_back({d[3], d[4],d[5]});
+        inputs.push_back({d[0], d[1], d[2],d[3]});
+        outputs.push_back({d[4], d[5],d[6],d[7]});
 
         // rotate
         double val = d.back();
@@ -181,9 +181,9 @@ int main(int argc, char*argv[])
         repetitions = 5;
     } else if (strncmp(argv[1], "rnn", opt_size)==0) {
         printf("rnn\n");
-        samp_size = 50000;
-        repetitions = 1;
         opt = RNN;
+        samp_size = 30000;
+        repetitions = 1;
     } else {
         printf("wrong\n");
         return 2;
@@ -220,7 +220,7 @@ int main(int argc, char*argv[])
     }
 
     // length of 'layers' variable describes number of layers, each element describes number of neurons in the layer
-    std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 16, 16, (unsigned)test_outputs[0].size()};
+    std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 16, 10, (unsigned)test_outputs[0].size()};
     Net<RecurrentNeuron> myNet(layers);
 
     std::vector<double> results_container;
