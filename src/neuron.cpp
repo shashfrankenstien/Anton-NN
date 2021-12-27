@@ -119,8 +119,7 @@ void Neuron::calc_hidden_gradient()
 
 RecurrentNeuron::RecurrentNeuron(unsigned idx, Layer<RecurrentNeuron> *prev_layer, unsigned prev_layer_size, Layer<RecurrentNeuron> *next_layer, unsigned next_layer_size)
 : Neuron(idx, (Layer<Neuron>*)prev_layer, prev_layer_size, (Layer<Neuron>*)next_layer, next_layer_size),
-m_recur_activation_val(0)//,
-// m_recur_gradient(0)
+m_recur_activation_val(0)
 {
     for (int i=0; i<next_layer_size; i++) {
         double w = INIT_WEIGHT_FUNC();

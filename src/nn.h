@@ -67,7 +67,6 @@ class RecurrentNeuron: public Neuron
         void set_value(double val) override;
 
     protected:
-
         double m_recur_activation_val;
         std::vector<double> m_recur_conn_weights;
         std::vector<double> m_recur_old_conn_weight_deltas;
