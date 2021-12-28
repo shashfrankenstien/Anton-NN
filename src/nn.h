@@ -21,6 +21,7 @@ using Layer = std::vector<N>;
 
 
 
+
 // ****************** Neuron ******************
 
 class Neuron
@@ -30,6 +31,7 @@ class Neuron
 
         virtual void set_value(double val);
         double get_value() const;
+        double get_error(double out) const;
 
         void activate(); // feed forward action
         void adjust_input_weights(); // back prop action
@@ -82,14 +84,16 @@ class RecurrentNeuron: public Neuron
 
 // ****************** Net ******************
 
-template <class N>
+// N is the type of neuron to use
+// I is the type of input. defaults to double
+template <class N, typename I = double>
 class Net
 {
     public:
         Net(const std::vector<unsigned> &layers);
         // ~Net();
 
-        void feed_forward(const std::vector<double> &inp);
+        void feed_forward(const std::vector<I> &inp);
         void back_propagate_sgd(std::vector<double> &out);
 
         void get_results(std::vector<double> &results, double &avg_abs_error) const;
@@ -105,8 +109,8 @@ class Net
 
 
 
-template <class N>
-Net<N>::Net(const std::vector<unsigned> &layers)
+template <class N, typename I>
+Net<N, I>::Net(const std::vector<unsigned> &layers)
 : m_error(0)
 {
     unsigned num_layers = layers.size();
@@ -136,8 +140,8 @@ Net<N>::Net(const std::vector<unsigned> &layers)
 }
 
 
-template <class N>
-void Net<N>::feed_forward(const std::vector<double> &inp)
+template <class N, typename I>
+void Net<N, I>::feed_forward(const std::vector<I> &inp)
 {
     debug_print("feed fwd\n");
     Layer<N> &input_layer = m_layers.front();
@@ -156,8 +160,8 @@ void Net<N>::feed_forward(const std::vector<double> &inp)
 }
 
 
-template <class N>
-void Net<N>::back_propagate_sgd(std::vector<double> &out)
+template <class N, typename I>
+void Net<N, I>::back_propagate_sgd(std::vector<double> &out)
 {
     // performs isolated stochastic gradient decent
     // need to experiment with other methods
@@ -170,7 +174,7 @@ void Net<N>::back_propagate_sgd(std::vector<double> &out)
 
     m_avg_abs_error = 0;
     for (unsigned n = 0; n < output_layer.size(); n++) {
-        double delta = out[n] - output_layer[n].get_value();
+        double delta = output_layer[n].get_error(out[n]);
         m_error += delta;
         m_avg_abs_error += fabs(delta);
         // calculate output gradients while we're looping
@@ -198,8 +202,8 @@ void Net<N>::back_propagate_sgd(std::vector<double> &out)
 
 
 
-template <class N>
-void Net<N>::get_results(std::vector<double> &results, double &avg_abs_error) const
+template <class N, typename I>
+void Net<N, I>::get_results(std::vector<double> &results, double &avg_abs_error) const
 {
     const Layer<N> &output_layer = m_layers.back();
     for (unsigned n = 0; n < output_layer.size(); n++) {
@@ -209,8 +213,8 @@ void Net<N>::get_results(std::vector<double> &results, double &avg_abs_error) co
 }
 
 
-template <class N>
-void Net<N>::to_file(const std::string &filepath) const
+template <class N, typename I>
+void Net<N, I>::to_file(const std::string &filepath) const
 {
 
 }

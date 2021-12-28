@@ -40,6 +40,12 @@ double Neuron::get_value() const
     return m_activation_val;
 }
 
+double Neuron::get_error(double out) const
+{
+    return out - m_activation_val;
+}
+
+
 double Neuron::get_activation_for(Neuron* other) const
 {
     return (m_activation_val * m_conn_weights[other->m_idx]);
