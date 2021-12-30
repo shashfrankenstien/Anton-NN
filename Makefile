@@ -20,5 +20,9 @@ test_rnn: clean
 	g++ -g -fsanitize=address -I./src -I./tests ./src/neuron.cpp ./tests/recur_nn.cpp -o anton
 	make run
 
+test_cnn: clean
+	g++ -g -fsanitize=address -I./src -I./tests ./src/neuron.cpp ./src/conv_neuron.cpp ./tests/conv_nn.cpp -o anton
+	./anton
+
 clean:
 	-rm anton

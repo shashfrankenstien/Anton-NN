@@ -5,6 +5,7 @@
 #include <string>
 #include <cassert> //assert
 #include <cmath>
+#include <type_traits> // std::is_same
 
 #define PRINT_DEBUG_MSGS false
 
@@ -20,24 +21,23 @@ template <class N>
 using Layer = std::vector<N>;
 
 
-
-
 // ****************** Neuron ******************
 
+// Basic Neuron class
 class Neuron
 {
     public:
         Neuron(unsigned idx, Layer<Neuron>* prev_layer, unsigned prev_layer_size, Layer<Neuron>* next_layer, unsigned next_layer_size);
 
+        virtual double get_value() const;
         virtual void set_value(double val);
-        double get_value() const;
-        double get_error(double out) const;
+        virtual double get_error(double out) const;
 
-        void activate(); // feed forward action
-        void adjust_input_weights(); // back prop action
+        virtual void activate(); // feed forward action
+        virtual void adjust_input_weights(); // back prop action
 
-        void calc_output_gradient(double target);
-        void calc_hidden_gradient();
+        virtual void calc_output_gradient(double target);
+        virtual void calc_hidden_gradient();
 
     protected:
         Layer<Neuron>* m_prev_layer;
@@ -45,9 +45,7 @@ class Neuron
         unsigned m_prev_layer_size;
         unsigned m_next_layer_size;
 
-
         unsigned m_idx;
-
         double m_activation_val;
         double m_gradient;
         std::vector<double> m_conn_weights;
@@ -61,6 +59,7 @@ class Neuron
 };
 
 
+// Neuron with recurrent memory
 class RecurrentNeuron: public Neuron
 {
     public:
@@ -81,16 +80,96 @@ class RecurrentNeuron: public Neuron
 };
 
 
+// Input type for ConvNeuron based Net
+class ConvFrame
+{
+    public:
+        unsigned m_rows;
+        unsigned m_cols;
+
+        ConvFrame();
+        ConvFrame(unsigned nrows, unsigned ncols);
+        ConvFrame(const ConvFrame& other);
+        ConvFrame(const std::vector<std::vector<double>> &other);
+        void reset_size(unsigned nrows, unsigned ncols);
+
+        double get(unsigned row, unsigned col) const;
+        double get(unsigned idx) const;
+        double avg() const;
+
+        double& operator()(unsigned idx);
+        double& operator()(unsigned row, unsigned col);
+        void operator+=(const ConvFrame& other);
+        void operator-=(const ConvFrame& other);
+        void operator+=(double scalar);
+        void operator-=(double scalar);
+        // void operator*=(double scalar);
+
+        void print();
+
+    private:
+        std::vector<double> m_data;
+};
+
+typedef struct {
+    unsigned n_neurons;
+    unsigned kernel_size;
+    unsigned stride = 1;
+    unsigned padding = 0;
+} ConvTopology;
+
+
+// convolutional neuron
+// - It is a full rewrite of Neuron. Subclassing it to force API to stay same
+class ConvNeuron: public Neuron
+{
+    public:
+        ConvNeuron(unsigned idx, Layer<ConvNeuron> *prev_layer, unsigned prev_layer_size,
+            Layer<ConvNeuron> *next_layer, unsigned next_layer_size,
+            const ConvTopology &kernel_conf, const unsigned (&input_dimentions)[2]);
+
+        void set_value(const ConvFrame &val);
+        double get_value() const override;
+        double get_error(double out) const override;
+
+        void activate() override; // feed forward action
+        void adjust_input_weights() override; // back prop action
+
+        void calc_output_gradient(double target) override;
+        void calc_hidden_gradient() override;
+
+    protected:
+        ConvTopology m_kernel_conf;
+        unsigned m_in_dim[2] = {0,0};
+        unsigned m_out_dim[2] = {0,0};
+        ConvFrame m_activation_val;
+        ConvFrame m_gradient;
+        std::vector<ConvFrame> m_kernels;
+        std::vector<ConvFrame> m_kernels_deltas;
+
+        void get_output_dimentions(unsigned (&dims)[2]) const;
+        void get_input_dimentions(unsigned (&dims)[2]) const;
+        ConvFrame get_conv_for(Neuron* other) const;
+        void adjust_weight_for(Neuron* other) override;
+
+        ConvNeuron& get_next_layer_neuron(unsigned other_idx) override;
+        ConvNeuron& get_prev_layer_neuron(unsigned other_idx) override;
+};
+
 
 // ****************** Net ******************
 
-// N is the type of neuron to use
-// I is the type of input. defaults to double
+
+// Neural Network template class
+// - N is the type of neuron to use
+// - I is the type of input. defaults to double
 template <class N, typename I = double>
 class Net
 {
     public:
         Net(const std::vector<unsigned> &layers);
+        Net(const std::vector<ConvTopology> &topology, const unsigned (&input_dimentions)[2]); // convolutional net special case
+        // Net(const std::vector<unsigned> &layers );
         // ~Net();
 
         void feed_forward(const std::vector<I> &inp);
@@ -138,6 +217,43 @@ Net<N, I>::Net(const std::vector<unsigned> &layers)
         debug_print("\n");
     }
 }
+
+
+template <class N, typename I>
+Net<N, I>::Net(const std::vector<ConvTopology> &topology, const unsigned (&input_dimentions)[2])
+: m_error(0)
+{
+    static_assert(std::is_same<ConvNeuron, N>::value && std::is_same<ConvFrame, I>::value, "Only ConvNeuron accepts ConvTopology constructor arg");
+    unsigned num_layers = topology.size();
+
+    // create Layers in each layer
+    for (unsigned layer_idx=0; layer_idx<num_layers; layer_idx++) {
+        m_layers.push_back(Layer<N>());
+    }
+
+    // create Neurons in each layer
+    // we do this as a separate loop so that we can pass pointers to prev and next layers to Neurons
+    for (unsigned layer_idx=0; layer_idx<num_layers; layer_idx++) {
+        debug_print("Layer<N> %d\n", layer_idx);
+
+        Layer<N>* prev_layer = (layer_idx==0) ? NULL : &m_layers[layer_idx-1];
+        unsigned prev_layer_size = (layer_idx==0) ? 0 : topology[layer_idx-1].n_neurons;
+
+        Layer<N>* next_layer = (layer_idx==num_layers-1) ? NULL : &m_layers[layer_idx+1];
+        unsigned next_layer_size = (layer_idx==num_layers-1) ? 0 : topology[layer_idx+1].n_neurons;
+
+        for (unsigned neur_idx=0; neur_idx<topology[layer_idx].n_neurons; neur_idx++) {
+            m_layers[layer_idx].push_back(N(
+                neur_idx, prev_layer, prev_layer_size,
+                next_layer, next_layer_size,
+                topology[layer_idx], input_dimentions
+            ));
+            debug_print("\tCreated Neuron %d\n", neur_idx);
+        }
+        debug_print("\n");
+    }
+}
+
 
 
 template <class N, typename I>

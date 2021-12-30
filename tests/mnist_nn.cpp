@@ -3,7 +3,7 @@
 #include "test_helper.h"
 
 
-#include "./vendor/mnist/mnist_reader.hpp"
+#include "../vendor/mnist/mnist_reader.hpp"
 #define EMNIST_DATA_DIR "./data/EMNIST_Digits"
 void uint8_breakdown(uint8_t val, std::vector<double> &res)
 {

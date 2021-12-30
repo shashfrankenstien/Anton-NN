@@ -10,9 +10,9 @@ inline double Sigmoid(double z)
 {
     return 1 / (1 + exp(-z));
 }
-inline double DSigmoid(double z)
+inline double DSigmoid(double s) // where s is sigmoid output
 {
-    return z * (1-z);
+    return s * (1-s);
 }
 
 inline double ReLU(double z)

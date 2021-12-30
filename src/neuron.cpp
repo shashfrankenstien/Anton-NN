@@ -51,6 +51,21 @@ double Neuron::get_activation_for(Neuron* other) const
     return (m_activation_val * m_conn_weights[other->m_idx]);
 }
 
+
+void Neuron::activate()
+{
+    if (m_prev_layer_size != 0) {
+        // combines neuron value with connection weight from neurons in the previous layer feeding current neuron
+        double sum_val = 0;
+        for (unsigned n=0; n<m_prev_layer_size; n++) {
+            sum_val += get_prev_layer_neuron(n).get_activation_for(this);
+        }
+        // activate and set value!!
+        set_value(ACTIVATION_FUNC(sum_val - BIAS));
+    }
+}
+
+
 void Neuron::adjust_weight_for(Neuron* other)
 {
     // adjust weights for other neuron on the next layer based on it's calculated gradient and learning rate
@@ -64,20 +79,6 @@ void Neuron::adjust_weight_for(Neuron* other)
     m_conn_weights[other->m_idx] -= new_delta_weight;
     m_old_conn_weight_deltas[other->m_idx] = new_delta_weight;
     debug_print("%f\n", m_conn_weights[other->m_idx]);
-}
-
-
-void Neuron::activate()
-{
-    if (m_prev_layer_size != 0) {
-        // combines neuron value with connection weight from neurons in the previous layer feeding current neuron
-        double sum_val = 0;
-        for (unsigned n=0; n<m_prev_layer_size; n++) {
-            sum_val += get_prev_layer_neuron(n).get_activation_for(this);
-        }
-        // activate and set value!!
-        set_value(ACTIVATION_FUNC(sum_val - BIAS));
-    }
 }
 
 
