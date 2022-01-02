@@ -123,6 +123,6 @@ int main()
     }
     printf("ERR: %3.4f %c\n", abs_avg_error*100, (overall_success? '-': 'x'));
 
-    // run_test<RecurrentNeuron>(myNet, test_inputs, test_outputs, repetitions, [&test_inputs](unsigned idx){input_printer(test_inputs[idx]);});
+    // train_net<RecurrentNeuron>(myNet, test_inputs, test_outputs, repetitions, [&test_inputs](unsigned idx){input_printer(test_inputs[idx]);});
 
 }

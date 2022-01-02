@@ -37,4 +37,4 @@ watch:
 plot:
 	watch -n 5 "tail -n1 result.txt | awk '{print \$$0}' \
 	&& tail -n 10000 result.txt | grep RES | awk '/(-|x)$$/{print \$$NF}' | sort | uniq -c | sed 's/-/correct/g;s/x/wrong/g' \
-	&& awk '/(-|x)$$/{print \$$0}' result.txt | sed -E 's/.*MAVG:\s([0-9.]+).*/\1/g' | feedgnuplot --terminal 'dumb 80,40' --set 'yr [0:100]' "
+	&& awk '/(-|x)$$/{print \$$0}' result.txt | sed -E 's/.*MAVG:\s([0-9.]+).*/\1/g' | feedgnuplot --terminal 'dumb 80,40' --set 'yr [0:100]' | sed 's/A/\*/g'"

@@ -1,8 +1,14 @@
 #include <deque>
 #include "nn.h"
 
+/*
+trains the net and also spits out useful information
+- N is the type of neuron to use
+- I is the type of input. defaults to double
+- L is a function that takes the index of the input and prints the input without new-line. caller should provide this function
+*/
 template <class N, typename I = double, typename L>
-void run_test(Net<N> &myNet, std::vector<std::vector<I>> &test_inputs, std::vector<std::vector<double>> &test_outputs, unsigned repetitions, L print_inputs)//void (*print_inputs)(unsigned idx))
+void train_net(Net<N> &myNet, std::vector<std::vector<I>> &test_inputs, std::vector<std::vector<double>> &test_outputs, unsigned repetitions, L print_inputs)//void (*print_inputs)(unsigned idx))
 {
     std::vector<double> results_container;
     double abs_avg_error;

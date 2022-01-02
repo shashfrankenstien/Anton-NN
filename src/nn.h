@@ -23,7 +23,9 @@ using Layer = std::vector<N>;
 
 // ****************** Neuron ******************
 
-// Basic Neuron class
+/*
+Basic Neuron class
+*/
 class Neuron
 {
     public:
@@ -59,7 +61,9 @@ class Neuron
 };
 
 
-// Neuron with recurrent memory
+/*
+Neuron with recurrent memory
+*/
 class RecurrentNeuron: public Neuron
 {
     public:
@@ -79,8 +83,9 @@ class RecurrentNeuron: public Neuron
         RecurrentNeuron& get_prev_layer_neuron(unsigned other_idx) override;
 };
 
-
-// Input type for ConvNeuron based Net
+/*
+Input type for ConvNeuron based Net
+*/
 class ConvFrame
 {
     public:
@@ -119,8 +124,10 @@ typedef struct {
 } ConvTopology;
 
 
-// convolutional neuron
-// - It is a full rewrite of Neuron. Subclassing it to force API to stay same
+/*
+convolutional neuron
+- this is mostly a full rewrite of Neuron, but with similar interface
+*/
 class ConvNeuron: public Neuron
 {
     public:
@@ -130,7 +137,6 @@ class ConvNeuron: public Neuron
 
         void set_value(const ConvFrame &val);
         double get_value() const override;
-        double get_error(double out) const override;
 
         void activate() override; // feed forward action
         void adjust_input_weights() override; // back prop action
@@ -159,10 +165,11 @@ class ConvNeuron: public Neuron
 
 // ****************** Net ******************
 
-
-// Neural Network template class
-// - N is the type of neuron to use
-// - I is the type of input. defaults to double
+/*
+Neural Network template class
+- N is the type of neuron to use
+- I is the type of input. defaults to double
+*/
 template <class N, typename I = double>
 class Net
 {
@@ -256,13 +263,15 @@ Net<N, I>::Net(const std::vector<ConvTopology> &topology, const unsigned (&input
 }
 
 
-
+/*
+input vector should be of the same size as the num nodes in first layer
+*/
 template <class N, typename I>
 void Net<N, I>::feed_forward(const std::vector<I> &inp)
 {
     debug_print("feed fwd\n");
     Layer<N> &input_layer = m_layers.front();
-    assert(inp.size() == input_layer.size()); // input vector should be of the same size as the num nodes in first layer
+    assert(inp.size() == input_layer.size());
 
     for (unsigned n = 0; n < inp.size(); n++) { // actuate the first layer
         input_layer[n].set_value(inp[n]);
@@ -276,13 +285,13 @@ void Net<N, I>::feed_forward(const std::vector<I> &inp)
     }
 }
 
-
+/*
+performs isolated stochastic gradient decent
+need to experiment with other methods
+*/
 template <class N, typename I>
 void Net<N, I>::back_propagate_sgd(std::vector<double> &out)
 {
-    // performs isolated stochastic gradient decent
-    // need to experiment with other methods
-
     debug_print("back prop\n");
     // calculate overall cost using sum of squared errors
     Layer<N> &output_layer = m_layers.back();

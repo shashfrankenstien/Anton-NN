@@ -230,7 +230,7 @@ void input_printer(std::vector<double> &arr)
 
 int main()
 {
-    unsigned samp_size = 500000;
+    unsigned samp_size = 700000;
     unsigned repetitions = 1;
 
     srand(RANDOM_SEED);
@@ -248,12 +248,12 @@ int main()
 
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 160, 80, 40, (unsigned)test_outputs[0].size()}; // blind_men_and_elephant 95.9% with small random weights and 500k training set
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 160, 80, 40, (unsigned)test_outputs[0].size()}; // sticks 97.2% with small random weights
-    std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 160, 80, 40, (unsigned)test_outputs[0].size()}; // trump tweets 92% with small random weights
+    std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 160, 80, 40, (unsigned)test_outputs[0].size()}; // trump tweets 93.2% with small random weights and 700k samples
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 20, 20, (unsigned)test_outputs[0].size()}; // 86.25% on alphabet with small random weights
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 20, 20, (unsigned)test_outputs[0].size()}; // 96.15% on buzzy with small random weights
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 100, 50, 50, 20, 10, (unsigned)test_outputs[0].size()}; // 98% on buzzy with large random weights!
     Net<RecurrentNeuron> myNet(layers);
-    run_test<RecurrentNeuron>(myNet, test_inputs, test_outputs, repetitions, [&test_inputs](unsigned idx){input_printer(test_inputs[idx]);});
+    train_net<RecurrentNeuron>(myNet, test_inputs, test_outputs, repetitions, [&test_inputs](unsigned idx){input_printer(test_inputs[idx]);});
 
 
     std::vector<double> word = test_inputs[0];

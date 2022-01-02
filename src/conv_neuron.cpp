@@ -196,14 +196,11 @@ double ConvNeuron::get_value() const
     return ACTIVATION_FUNC(m_activation_val.avg());
 }
 
-double ConvNeuron::get_error(double out) const
-{
-    return out - get_value();
-}
 
-
-// called from next layer. uses the assigned kernel to produce activation value for that layer
-// - convolutions involve multiplying against the kernel and averaging it to a single output cell
+/*
+called from next layer. uses the assigned kernel to produce activation value for that layer
+- convolutions involve multiplying against the kernel and summing it to a single output cell
+*/
 ConvFrame ConvNeuron::get_conv_for(Neuron* other) const
 {
     ConvNeuron* oth = (ConvNeuron*)other;
@@ -215,7 +212,7 @@ ConvFrame ConvNeuron::get_conv_for(Neuron* other) const
 
     ConvFrame out(m_out_dim[0], m_out_dim[1]);
 
-    // convolution involve multiplying against the kernel and averaging it to a single output cell
+    // convolution involve multiplying against the kernel and summing it to a single output cell
     unsigned count = 0;
     for (unsigned opr = 0; opr < m_out_dim[0]; opr++) {
         for (unsigned opc = 0; opc < m_out_dim[1]; opc++) {
@@ -237,7 +234,9 @@ ConvFrame ConvNeuron::get_conv_for(Neuron* other) const
 }
 
 
-// combines neuron value with connection weight from neurons in the previous layer feeding current neuron
+/*
+combines neuron value with connection weight from neurons in the previous layer feeding current neuron
+*/
 void ConvNeuron::activate()
 {
     if (m_prev_layer_size != 0) {
@@ -253,11 +252,13 @@ void ConvNeuron::activate()
 }
 
 
-
+/*
+adjust weights for other neuron on the next layer based on it's calculated gradient and learning rate
+since we are using stochastic gradient decent, we add in some optional momentum using m_old_conn_weight_deltas to reduce noisy adjustments
+we're using learning rate, previous neuron activation and current gradient
+*/
 void ConvNeuron::adjust_weight_for(Neuron* other)
 {
-    // // adjust weights for other neuron on the next layer based on it's calculated gradient and learning rate
-    // // since we are using stochastic gradient decent, we add in some momentum using m_old_conn_weight_deltas to reduce noisy adjustments
     // ConvNeuron* oth = (ConvNeuron*)other;
     // double old_weight_delta = m_old_conn_weight_deltas[oth->m_idx];
     // // we're using learning rate, previous neuron activation and current gradient
@@ -281,19 +282,24 @@ void ConvNeuron::adjust_input_weights()
 }
 
 
+/*
+our current cost function is sum of squared errors,
+ derivative of this wrt current neurons activation value will be the output gradient
+*/
 void ConvNeuron::calc_output_gradient(double target)
 {
-    // // assuming our cost function is sum of squared errors,
-    // //  derivative of this wrt current neurons activation value will be -
     // m_gradient = -2 * (target - m_activation_val) * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
     // debug_print("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
 }
 
+
+/*
+to find how the hidden neuron influences the cost,
+ we need to sum up all derivatives of weights going out of the neuron, times derivative of current activation value.
+ this can be calculated by using the previously calculated gradients on the next layer.
+*/
 void ConvNeuron::calc_hidden_gradient()
 {
-    // // to find how the hidden neuron influences the cost,
-    // //  we need to sum up all derivatives of weights going out of the neuron, times derivative of current activation value.
-    // //  this can be calculated by using the previously calculated gradients on the next layer.
     // if (m_next_layer_size != 0) {
     //     double sum = 0;
     //     for (unsigned n=0; n<m_next_layer_size; n++) {

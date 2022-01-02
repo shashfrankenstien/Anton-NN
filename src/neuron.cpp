@@ -51,11 +51,12 @@ double Neuron::get_activation_for(Neuron* other) const
     return (m_activation_val * m_conn_weights[other->m_idx]);
 }
 
-
+/*
+combines neuron value with connection weight from neurons in the previous layer feeding current neuron
+*/
 void Neuron::activate()
 {
     if (m_prev_layer_size != 0) {
-        // combines neuron value with connection weight from neurons in the previous layer feeding current neuron
         double sum_val = 0;
         for (unsigned n=0; n<m_prev_layer_size; n++) {
             sum_val += get_prev_layer_neuron(n).get_activation_for(this);
@@ -65,11 +66,14 @@ void Neuron::activate()
     }
 }
 
-
+/*
+adjust weights for other neuron on the next layer based on it's calculated gradient and learning rate
+since we are using stochastic gradient decent, we add in some optional momentum using m_old_conn_weight_deltas to reduce noisy adjustments
+we're using learning rate, previous neuron activation and current gradient
+*/
 void Neuron::adjust_weight_for(Neuron* other)
 {
-    // adjust weights for other neuron on the next layer based on it's calculated gradient and learning rate
-    // since we are using stochastic gradient decent, we add in some momentum using m_old_conn_weight_deltas to reduce noisy adjustments
+
     double old_weight_delta = m_old_conn_weight_deltas[other->m_idx];
     // we're using learning rate, previous neuron activation and current gradient
     double new_delta_weight = (LEARNING_RATE * m_activation_val * other->m_gradient)
@@ -91,20 +95,24 @@ void Neuron::adjust_input_weights()
     }
 }
 
-
+/*
+our current cost function is sum of squared errors,
+ derivative of this wrt current neurons activation value will be the output gradient
+*/
 void Neuron::calc_output_gradient(double target)
 {
-    // assuming our cost function is sum of squared errors,
-    //  derivative of this wrt current neurons activation value will be -
+
     m_gradient = -2 * (target - m_activation_val) * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
     debug_print("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
 }
 
+/*
+to find how the hidden neuron influences the cost,
+ we need to sum up all derivatives of weights going out of the neuron, times derivative of current activation value.
+ this can be calculated by using the previously calculated gradients on the next layer.
+*/
 void Neuron::calc_hidden_gradient()
 {
-    // to find how the hidden neuron influences the cost,
-    //  we need to sum up all derivatives of weights going out of the neuron, times derivative of current activation value.
-    //  this can be calculated by using the previously calculated gradients on the next layer.
     if (m_next_layer_size != 0) {
         double sum = 0;
         for (unsigned n=0; n<m_next_layer_size; n++) {
@@ -158,10 +166,15 @@ double RecurrentNeuron::get_activation_for(Neuron* other) const
 }
 
 
+/*
+adjust weights for other neuron on the next layer based on it's calculated gradient and learning rate
+since we are using stochastic gradient decent, we add in some optional momentum using m_old_conn_weight_deltas to reduce noisy adjustments
+we're using learning rate, previous neuron activation and current gradient
+
+this method override does this for the recurrent cell of the neuron
+*/
 void RecurrentNeuron::adjust_weight_for(Neuron* other)
 {
-    // adjust weights for other neuron on the next layer based on it's calculated gradient and learning rate
-    // since we are using stochastic gradient decent, we add in some momentum using m_old_conn_weight_deltas to reduce noisy adjustments
     Neuron::adjust_weight_for(other);
 
     RecurrentNeuron* oth = (RecurrentNeuron*)other;
