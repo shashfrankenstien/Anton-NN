@@ -50,11 +50,13 @@ inline double large_random_weights()
 
 // TODO: add cost function option and derivative of it here
 
-#define INIT_WEIGHT_FUNC large_random_weights
+#define INIT_WEIGHT_FUNC random_weights
 #define ACTIVATION_FUNC Sigmoid
 #define ACTIVATION_DERIVATIVE_FUNC DSigmoid
 
+#define OUTPUT_ACTIVATION_FUNC
+
 #define RANDOM_SEED 0
 #define BIAS 0.5
-#define LEARNING_RATE 0.1
+#define LEARNING_RATE 0.1 // recurrent net performs better with 0.05 - 0.08 learning rates
 #define MOMENTUM_ALPHA 0

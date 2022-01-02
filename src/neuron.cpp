@@ -37,12 +37,12 @@ void Neuron::set_value(double val)
 
 double Neuron::get_value() const
 {
-    return m_activation_val;
+    return OUTPUT_ACTIVATION_FUNC(m_activation_val);
 }
 
 double Neuron::get_error(double out) const
 {
-    return out - m_activation_val;
+    return out - get_value();
 }
 
 
@@ -158,27 +158,17 @@ double RecurrentNeuron::get_activation_for(Neuron* other) const
 }
 
 
-
 void RecurrentNeuron::adjust_weight_for(Neuron* other)
 {
     // adjust weights for other neuron on the next layer based on it's calculated gradient and learning rate
     // since we are using stochastic gradient decent, we add in some momentum using m_old_conn_weight_deltas to reduce noisy adjustments
+    Neuron::adjust_weight_for(other);
+
     RecurrentNeuron* oth = (RecurrentNeuron*)other;
-    double old_weight_delta = m_old_conn_weight_deltas[oth->m_idx];
-    // we're using learning rate, previous neuron activation and current gradient
-    double new_delta_weight = (LEARNING_RATE * m_activation_val * oth->m_gradient)
-                        + (MOMENTUM_ALPHA * old_weight_delta); // include an additional factor in the direction of previous adjustment
-
-    debug_print("\tadj: %dx%d - %f - (%f) = ", m_idx, oth->m_idx, m_conn_weights[oth->m_idx], new_delta_weight);
-    m_conn_weights[oth->m_idx] -= new_delta_weight;
-    m_old_conn_weight_deltas[oth->m_idx] = new_delta_weight;
-    debug_print("%f\n", m_conn_weights[oth->m_idx]);
-
-
     // now doing the same for recurrent part of the neuron
-    old_weight_delta = m_recur_old_conn_weight_deltas[oth->m_idx];
+    double old_weight_delta = m_recur_old_conn_weight_deltas[oth->m_idx];
     // we're using learning rate, previous neuron activation and current gradient
-    new_delta_weight = (LEARNING_RATE * m_recur_activation_val * oth->m_gradient)
+    double new_delta_weight = (LEARNING_RATE * m_recur_activation_val * oth->m_gradient)
                         + (MOMENTUM_ALPHA * old_weight_delta); // include an additional factor in the direction of previous adjustment
 
     debug_print("\tadj: %dx%d - %f - (%f) = ", m_idx, oth->m_idx, m_recur_conn_weights[oth->m_idx], new_delta_weight);

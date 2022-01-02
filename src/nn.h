@@ -176,6 +176,7 @@ class Net
         void back_propagate_sgd(std::vector<double> &out);
 
         void get_results(std::vector<double> &results, double &avg_abs_error) const;
+        void get_results(std::vector<double> &results, double &avg_abs_error, double threshold) const;
 
         void to_file(const std::string &filepath) const;
 
@@ -324,6 +325,16 @@ void Net<N, I>::get_results(std::vector<double> &results, double &avg_abs_error)
     const Layer<N> &output_layer = m_layers.back();
     for (unsigned n = 0; n < output_layer.size(); n++) {
         results.push_back(output_layer[n].get_value());
+    }
+    avg_abs_error = m_avg_abs_error;
+}
+
+template <class N, typename I>
+void Net<N, I>::get_results(std::vector<double> &results, double &avg_abs_error, double threshold) const
+{
+    const Layer<N> &output_layer = m_layers.back();
+    for (unsigned n = 0; n < output_layer.size(); n++) {
+        results.push_back((output_layer[n].get_value() >= threshold) ? 1 : 0);
     }
     avg_abs_error = m_avg_abs_error;
 }
