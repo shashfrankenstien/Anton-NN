@@ -29,9 +29,9 @@ inline double TanH(double z)
 {
     return tanh(z);
 }
-inline double DTanH(double z)
+inline double DTanH(double s) // where s is TanH output
 {
-    return 1 - (z*z);
+    return 1 - (s*s);
 }
 
 
