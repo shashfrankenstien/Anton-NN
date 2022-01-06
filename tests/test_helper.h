@@ -8,7 +8,7 @@ trains the net and also spits out useful information
 - L is a function that takes the index of the input and prints the input without new-line. caller should provide this function
 */
 template <class N, typename I = double, typename L>
-void train_net(Net<N> &myNet, std::vector<std::vector<I>> &test_inputs, std::vector<std::vector<double>> &test_outputs, unsigned repetitions, L print_inputs)//void (*print_inputs)(unsigned idx))
+void train_net(Net<N> &anton_nn, std::vector<std::vector<I>> &test_inputs, std::vector<std::vector<double>> &test_outputs, unsigned repetitions, L print_inputs)//void (*print_inputs)(unsigned idx))
 {
     std::vector<double> results_container;
     double abs_avg_error;
@@ -19,8 +19,8 @@ void train_net(Net<N> &myNet, std::vector<std::vector<I>> &test_inputs, std::vec
     unsigned counter = 0;
     for (unsigned r = 1; r <= repetitions; r++) {
         for (unsigned i = 0; i < test_inputs.size(); i++) {
-            myNet.feed_forward(test_inputs[i]);
-            myNet.back_propagate_sgd(test_outputs[i]);
+            anton_nn.feed_forward(test_inputs[i]);
+            anton_nn.back_propagate_sgd(test_outputs[i]);
 
             printf("[%d] inp: ", counter++);
 
@@ -36,7 +36,7 @@ void train_net(Net<N> &myNet, std::vector<std::vector<I>> &test_inputs, std::vec
             printf(" -> ");
             results_container.clear();
             abs_avg_error = 0;
-            myNet.get_results(results_container, abs_avg_error);
+            anton_nn.get_results(results_container, abs_avg_error);
 
             bool overall_success = true;
             printf("RES: ");

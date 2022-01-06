@@ -252,8 +252,8 @@ int main()
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 20, 20, (unsigned)test_outputs[0].size()}; // 86.25% on alphabet with small random weights
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 20, 20, (unsigned)test_outputs[0].size()}; // 96.15% on buzzy with small random weights
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 100, 50, 50, 20, 10, (unsigned)test_outputs[0].size()}; // 98% on buzzy with large random weights!
-    Net<RecurrentNeuron> myNet(layers);
-    train_net<RecurrentNeuron>(myNet, test_inputs, test_outputs, repetitions, [&test_inputs](unsigned idx){input_printer(test_inputs[idx]);});
+    Net<RecurrentNeuron> anton_nn(layers);
+    train_net<RecurrentNeuron>(anton_nn, test_inputs, test_outputs, repetitions, [&test_inputs](unsigned idx){input_printer(test_inputs[idx]);});
 
 
     std::vector<double> word = test_inputs[0];
@@ -266,9 +266,9 @@ int main()
     for (unsigned i = 0; i < 80; i++) {
         std::string word_str = txt.decode(word);
         printf("%s ", word_str.c_str());
-        myNet.feed_forward(word);
+        anton_nn.feed_forward(word);
         word.clear();
-        myNet.get_results(word, err, 0.5);
+        anton_nn.get_results(word, err, 0.5);
     }
 
     printf("\n");

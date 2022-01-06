@@ -114,6 +114,6 @@ int main(int argc, char*argv[])
     }
 
     std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 10, (unsigned)test_outputs[0].size()};
-    Net<Neuron> myNet(layers);
-    train_net<Neuron>(myNet, test_inputs, test_outputs, repetitions, [&test_inputs](unsigned idx){input_printer(test_inputs[idx]);});
+    Net<Neuron> anton_nn(layers);
+    train_net<Neuron>(anton_nn, test_inputs, test_outputs, repetitions, [&test_inputs](unsigned idx){input_printer(test_inputs[idx]);});
 }

@@ -97,11 +97,11 @@ int main()
     topo.push_back({.n_neurons=4, .kernel_size=0}); // output neuron
 
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 10, (unsigned)test_outputs[0].size()};
-    Net<ConvNeuron, ConvFrame> myNet(topo, {28,28});
+    Net<ConvNeuron, ConvFrame> anton_nn(topo, {28,28});
 
     unsigned test = 1;
 
-    myNet.feed_forward(test_inputs[test]);
+    anton_nn.feed_forward(test_inputs[test]);
 
     printf(" exp: ");
     for (unsigned j = 0; j < test_outputs[test].size(); j++)
@@ -111,7 +111,7 @@ int main()
     std::vector<double> results_container;
     double abs_avg_error;
 
-    myNet.get_results(results_container, abs_avg_error);
+    anton_nn.get_results(results_container, abs_avg_error);
 
     bool overall_success = true;
     printf("RES: ");
@@ -123,6 +123,6 @@ int main()
     }
     printf("ERR: %3.4f %c\n", abs_avg_error*100, (overall_success? '-': 'x'));
 
-    // train_net<RecurrentNeuron>(myNet, test_inputs, test_outputs, repetitions, [&test_inputs](unsigned idx){input_printer(test_inputs[idx]);});
+    // train_net<RecurrentNeuron>(anton_nn, test_inputs, test_outputs, repetitions, [&test_inputs](unsigned idx){input_printer(test_inputs[idx]);});
 
 }
