@@ -7,7 +7,9 @@
 #include <cmath>
 #include <type_traits> // std::is_same
 
-#define PRINT_DEBUG_MSGS false
+#ifndef PRINT_DEBUG_MSGS
+#define PRINT_DEBUG_MSGS 0 // 1 or 0
+#endif
 
 #define debug_print(...) \
             do { if (PRINT_DEBUG_MSGS) printf( __VA_ARGS__); } while (0)
@@ -89,8 +91,8 @@ Input type for ConvNeuron based Net
 class ConvFrame
 {
     public:
-        unsigned m_rows;
-        unsigned m_cols;
+        unsigned rows;
+        unsigned columns;
 
         ConvFrame();
         ConvFrame(unsigned nrows, unsigned ncols);
@@ -100,7 +102,17 @@ class ConvFrame
 
         double get(unsigned row, unsigned col) const;
         double get(unsigned idx) const;
+        double min(unsigned strow, unsigned stcol, unsigned nrows, unsigned ncols) const;
+        double max(unsigned strow, unsigned stcol, unsigned nrows, unsigned ncols) const;
+        double sum(unsigned strow, unsigned stcol, unsigned nrows, unsigned ncols) const;
+        double avg(unsigned strow, unsigned stcol, unsigned nrows, unsigned ncols) const;
+        double min() const;
+        double max() const;
+        double sum() const;
         double avg() const;
+
+        ConvFrame convolve(const ConvFrame& kern, unsigned padding, unsigned stride) const;
+
 
         double& operator()(unsigned idx);
         double& operator()(unsigned row, unsigned col);
@@ -176,7 +188,6 @@ class Net
     public:
         Net(const std::vector<unsigned> &layers);
         Net(const std::vector<ConvTopology> &topology, const unsigned (&input_dimentions)[2]); // convolutional net special case
-        // Net(const std::vector<unsigned> &layers );
         // ~Net();
 
         void feed_forward(const std::vector<I> &inp);
@@ -195,7 +206,9 @@ class Net
 };
 
 
-
+/*
+Constructor for simple and recurrent networs
+*/
 template <class N, typename I>
 Net<N, I>::Net(const std::vector<unsigned> &layers)
 : m_error(0)
@@ -226,7 +239,9 @@ Net<N, I>::Net(const std::vector<unsigned> &layers)
     }
 }
 
-
+/*
+Constructor for convolutional network
+*/
 template <class N, typename I>
 Net<N, I>::Net(const std::vector<ConvTopology> &topology, const unsigned (&input_dimentions)[2])
 : m_error(0)

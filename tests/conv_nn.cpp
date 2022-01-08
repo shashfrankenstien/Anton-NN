@@ -86,7 +86,9 @@ int main()
     std::vector<std::vector<ConvFrame>> test_inputs;
     std::vector<std::vector<double>> test_outputs;
 
+    printf("loading mnist..\n");
     fetch_mnist_digits_conv(test_inputs, test_outputs, 20);
+    printf("loaded mnist..\n");
 
     std::vector<ConvTopology> topo;
 

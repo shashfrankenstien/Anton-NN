@@ -2,29 +2,40 @@
 #include "nn.h"
 
 
+
+static unsigned calc_conv_output_dim(unsigned input_dim, unsigned kernel_size, unsigned padding, unsigned stride)
+{
+    if (kernel_size==0 || stride==0)
+        return input_dim;
+    return ((input_dim + (2*padding) - kernel_size) / stride) + 1;
+}
+
+
+
+
 ConvFrame::ConvFrame(){}
 
 ConvFrame::ConvFrame(unsigned nrows, unsigned ncols)
-: m_rows(nrows),
-m_cols(ncols),
+: rows(nrows),
+columns(ncols),
 m_data(nrows*ncols, 0)
 {
 }
 
 ConvFrame::ConvFrame(const ConvFrame& other)
-: m_rows(other.m_rows),
-m_cols(other.m_cols),
+: rows(other.rows),
+columns(other.columns),
 m_data(other.m_data)
 {
 }
 
 ConvFrame::ConvFrame(const std::vector<std::vector<double>> &other)
-: m_rows(other.size()),
-m_cols(other.front().size()),
+: rows(other.size()),
+columns(other.front().size()),
 m_data(other.size()*other.front().size(), 0)
 {
-    for (unsigned r=0; r < m_rows; r++)
-        for (unsigned c=0; c < m_cols; c++)
+    for (unsigned r=0; r < rows; r++)
+        for (unsigned c=0; c < columns; c++)
             operator()(r, c) = other[r][c];
 }
 
@@ -33,75 +44,155 @@ void ConvFrame::reset_size(unsigned nrows, unsigned ncols)
 {
     m_data.clear();
     m_data.resize(nrows*ncols, 0);
-    m_rows = nrows;
-    m_cols = ncols;
+    rows = nrows;
+    columns = ncols;
 }
 
 
 double ConvFrame::get(unsigned idx) const
 {
-    assert (idx < m_rows*m_cols);
+    assert (idx < rows*columns);
     return m_data[idx];
 }
 
 double ConvFrame::get(unsigned row, unsigned col) const
 {
-    unsigned idx = (row * m_cols) + col;
+    unsigned idx = (row * columns) + col;
     return get(idx);
+}
+
+double ConvFrame::min(unsigned strow, unsigned stcol, unsigned nrows, unsigned ncols) const
+{
+    double min_val = 99999;
+    for (unsigned r = strow; r  < nrows; r++)
+        for (unsigned c = stcol; c < ncols; c++)
+            min_val = MIN(min_val, get(r, c));
+    return min_val;
+}
+
+double ConvFrame::max(unsigned strow, unsigned stcol, unsigned nrows, unsigned ncols) const
+{
+    double max_val = -99999;
+    for (unsigned r = strow; r  < nrows; r++)
+        for (unsigned c = stcol; c < ncols; c++)
+            max_val = MAX(max_val, get(r, c));
+    return max_val;
+}
+
+double ConvFrame::sum(unsigned strow, unsigned stcol, unsigned nrows, unsigned ncols) const
+{
+    double sum = 0;
+    for (unsigned r = strow; r  < nrows; r++)
+        for (unsigned c = stcol; c < ncols; c++)
+            sum += get(r, c);
+    return sum;
+}
+
+double ConvFrame::avg(unsigned strow, unsigned stcol, unsigned nrows, unsigned ncols) const
+{
+    return sum(strow, stcol, nrows, ncols) / (double)(nrows * ncols);
+}
+
+double ConvFrame::min() const
+{
+    return min(0, 0, rows, columns);
+}
+
+double ConvFrame::max() const
+{
+    return max(0, 0, rows, columns);
+}
+
+double ConvFrame::sum() const
+{
+    return sum(0, 0, rows, columns);
 }
 
 double ConvFrame::avg() const
 {
-    double sum = 0;
-    for (unsigned p = 0; p < m_rows * m_cols; p++)
-        sum += get(p);
-    return sum / (double)(m_rows * m_cols);
+    return avg(0, 0, rows, columns);
 }
+
+/*
+convolution involves multiplying values against the kernel and summing it to a single output cell
+ - this implementation is lossy if stride and dimentions don't work out perfectly
+ */
+ConvFrame ConvFrame::convolve(const ConvFrame& kern, unsigned padding, unsigned stride) const
+{
+
+    ConvFrame out(
+        calc_conv_output_dim(rows, kern.rows, padding, stride),
+        calc_conv_output_dim(columns, kern.columns, padding, stride)
+    );
+
+    if (kern.rows==0 || kern.columns==0) { // if kernel size is 0, return 0s as output
+        return out;
+    }
+
+    for (unsigned opr = 0; opr < out.rows; opr++) {
+        for (unsigned opc = 0; opc < out.columns; opc++) {
+
+            // these two loops apply the kernel and sum up the output at position opr, opc
+            double sum = 0;
+            for (unsigned kr = 0; kr < kern.rows; kr++) {
+                for (unsigned kc = 0; kc < kern.columns; kc+=stride) {
+                    unsigned act_c = opc+kc;
+                    unsigned act_r = opr+kr;
+                    sum += (get(act_r, act_c) * kern.get(kr, kc));
+                }
+            }
+            out(opr, opc) = sum; // - BIAS; // / (kern.columns*kern.rows);
+        }
+    }
+
+    return out;
+}
+
 
 double& ConvFrame::operator()(unsigned idx)
 {
-    assert (idx < m_rows*m_cols);
+    assert (idx < rows*columns);
     return m_data[idx];
 }
 
 double& ConvFrame::operator()(unsigned row, unsigned col)
 {
-    unsigned idx = (row * m_cols) + col;
+    unsigned idx = (row * columns) + col;
     return operator()(idx);
 }
 
 void ConvFrame::operator+=(const ConvFrame& other)
 {
-    assert(m_rows==other.m_rows && m_cols==other.m_cols);
-    for (unsigned p = 0; p < m_rows * m_cols; p++)
+    assert(rows==other.rows && columns==other.columns);
+    for (unsigned p = 0; p < rows * columns; p++)
         operator()(p) += other.get(p);
 }
 
 void ConvFrame::operator-=(const ConvFrame& other)
 {
-    assert(m_rows==other.m_rows && m_cols==other.m_cols);
-    for (unsigned p = 0; p < m_rows * m_cols; p++)
+    assert(rows==other.rows && columns==other.columns);
+    for (unsigned p = 0; p < rows * columns; p++)
         operator()(p) -= other.get(p);
 }
 
 void ConvFrame::operator+=(double scalar)
 {
-    for (unsigned p = 0; p < m_rows * m_cols; p++)
+    for (unsigned p = 0; p < rows * columns; p++)
         operator()(p) += scalar;
 }
 
 void ConvFrame::operator-=(double scalar)
 {
-    for (unsigned p = 0; p < m_rows * m_cols; p++)
+    for (unsigned p = 0; p < rows * columns; p++)
         operator()(p) -= scalar;
 }
 
 void ConvFrame::print()
 {
     static double threshold = 0.4;
-    for (unsigned r=0; r<m_rows; r++) {
+    for (unsigned r=0; r<rows; r++) {
         printf("|");
-        for (unsigned c=0; c<m_cols; c++){
+        for (unsigned c=0; c<columns; c++){
             // printf("%.2f ", get(r,c));
             if (get(r, c)>threshold)
                 printf("\u25A0 ");
@@ -116,14 +207,6 @@ void ConvFrame::print()
 }
 
 
-
-
-static unsigned calc_output_dim(unsigned input_dim, unsigned kernel_size, unsigned padding, unsigned stride)
-{
-    if (kernel_size==0 || stride==0)
-        return input_dim;
-    return ((input_dim + (2*padding) - kernel_size) / stride) + 1;
-}
 
 
 
@@ -153,10 +236,10 @@ m_kernel_conf(kernel_conf)
     } else {
         get_prev_layer_neuron(0).get_output_dimentions(m_in_dim);
     }
-    m_out_dim[0] = calc_output_dim(
+    m_out_dim[0] = calc_conv_output_dim(
         m_in_dim[0], m_kernel_conf.kernel_size,
         m_kernel_conf.padding, m_kernel_conf.stride);
-    m_out_dim[1] = calc_output_dim(
+    m_out_dim[1] = calc_conv_output_dim(
         m_in_dim[1], m_kernel_conf.kernel_size,
         m_kernel_conf.padding, m_kernel_conf.stride);
 
@@ -187,7 +270,7 @@ void ConvNeuron::get_input_dimentions(unsigned (&dims)[2]) const
 
 void ConvNeuron::set_value(const ConvFrame &val)
 {
-    assert(val.m_rows==m_in_dim[0] && val.m_cols==m_in_dim[1]);
+    assert(val.rows==m_in_dim[0] && val.columns==m_in_dim[1]);
     m_activation_val = val;
 }
 
@@ -206,31 +289,7 @@ ConvFrame ConvNeuron::get_conv_for(Neuron* other) const
     ConvNeuron* oth = (ConvNeuron*)other;
     const ConvFrame& kern = m_kernels[oth->m_idx];
 
-    if (kern.m_rows==0) {
-        return oth->m_activation_val;
-    }
-
-    ConvFrame out(m_out_dim[0], m_out_dim[1]);
-
-    // convolution involve multiplying against the kernel and summing it to a single output cell
-    unsigned count = 0;
-    for (unsigned opr = 0; opr < m_out_dim[0]; opr++) {
-        for (unsigned opc = 0; opc < m_out_dim[1]; opc++) {
-
-            double sum = 0;
-            // these two loops apply the kernel at position opr, opc
-            for (unsigned kr = 0; kr < kern.m_rows; kr++) {
-                for (unsigned kc = 0; kc < kern.m_cols; kc+=m_kernel_conf.stride) {
-                    unsigned img_c = opc+kc;
-                    unsigned img_r = opr+kr;
-                    sum += (m_activation_val.get(img_r, img_c) * kern.get(kr, kc));
-                }
-            }
-            out(opr, opc) = sum; // - BIAS; // / (kern.m_cols*kern.m_rows);
-        }
-    }
-
-    return out;
+    return m_activation_val.convolve(kern, m_kernel_conf.padding, m_kernel_conf.stride);
 }
 
 
