@@ -62,6 +62,7 @@ int main()
     std::vector<std::vector<double>> test_outputs;
     fetch_mnist_digits(test_inputs, test_outputs, samp_size);
 
+    // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 20, 20, (unsigned)test_outputs[0].size()};
     std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 160, 80, 20, (unsigned)test_outputs[0].size()};
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 10, (unsigned)test_outputs[0].size()};
     Net<Neuron> anton_nn(layers);
