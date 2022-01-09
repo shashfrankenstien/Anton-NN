@@ -6,6 +6,7 @@
 #include <cassert> //assert
 #include <cmath>
 #include <type_traits> // std::is_same
+#include <functional> // std::function
 
 #ifndef PRINT_DEBUG_MSGS
 #define PRINT_DEBUG_MSGS 0 // 1 or 0
@@ -100,6 +101,14 @@ class ConvFrame
         ConvFrame(const std::vector<std::vector<double>> &other);
         void reset_size(unsigned nrows, unsigned ncols);
 
+        double& operator()(unsigned idx);
+        double& operator()(unsigned row, unsigned col);
+        void operator+=(const ConvFrame& other);
+        void operator-=(const ConvFrame& other);
+        void operator+=(double scalar);
+        void operator-=(double scalar);
+        // void operator*=(double scalar);
+
         double get(unsigned row, unsigned col) const;
         double get(unsigned idx) const;
         double min(unsigned strow, unsigned stcol, unsigned nrows, unsigned ncols) const;
@@ -113,19 +122,31 @@ class ConvFrame
 
         ConvFrame convolve(const ConvFrame& kern, unsigned padding, unsigned stride) const;
 
+        ConvFrame max_pool(unsigned pool_factor) const;
+        ConvFrame avg_pool(unsigned pool_factor) const;
 
-        double& operator()(unsigned idx);
-        double& operator()(unsigned row, unsigned col);
-        void operator+=(const ConvFrame& other);
-        void operator-=(const ConvFrame& other);
-        void operator+=(double scalar);
-        void operator-=(double scalar);
-        // void operator*=(double scalar);
+        ConvFrame max_unpool() const;
+        ConvFrame avg_unpool() const;
+        // following methods allow for unpooling even if not originally pooled
+        ConvFrame max_unpool(unsigned pool_factor) const;
+        ConvFrame avg_unpool(unsigned pool_factor) const;
+
+        // map a function on all values - used for activation
+        void map(std::function<double(double)> func);
 
         void print();
 
     private:
+        unsigned calc_idx(unsigned row, unsigned col) const;
         std::vector<double> m_data;
+        /* positions are stored if the frame is pooled and needs to be unpooled
+            ex: unpooling max pooled frame will involve
+                - setting back the max value to the right position
+                - setting other positions to 0
+            however, average pooled frames will be divided across all postions
+        */
+        unsigned m_pool_factor; // if 0 or 1, frame is not pooled
+        std::vector<unsigned> m_pool_positions;
 };
 
 typedef struct {
@@ -133,6 +154,8 @@ typedef struct {
     unsigned kernel_size;
     unsigned stride = 1;
     unsigned padding = 0;
+    enum : char {NO_POOL, MAX_POOL, AVG_POOL} pooling = NO_POOL;
+    unsigned pool_factor = 2; // defaults to 2 because it's the most common
 } ConvTopology;
 
 
@@ -165,8 +188,8 @@ class ConvNeuron: public Neuron
         std::vector<ConvFrame> m_kernels;
         std::vector<ConvFrame> m_kernels_deltas;
 
-        void get_output_dimentions(unsigned (&dims)[2]) const;
-        void get_input_dimentions(unsigned (&dims)[2]) const;
+        void write_output_dimentions(unsigned (&dims)[2]) const;
+        void write_input_dimentions(unsigned (&dims)[2]) const;
         ConvFrame get_conv_for(Neuron* other) const;
         void adjust_weight_for(Neuron* other) override;
 

@@ -37,7 +37,7 @@ void Neuron::set_value(double val)
 
 double Neuron::get_value() const
 {
-    return OUTPUT_ACTIVATION_FUNC(m_activation_val);
+    return m_activation_val;
 }
 
 double Neuron::get_error(double out) const
@@ -62,7 +62,16 @@ void Neuron::activate()
             sum_val += get_prev_layer_neuron(n).get_activation_for(this);
         }
         // activate and set value!!
+// feature to set output activation function separately :?
+#ifdef OUTPUT_ACTIVATION_FUNC
+        if (m_next_layer_size==0) // output layer
+            set_value(OUTPUT_ACTIVATION_FUNC(sum_val - BIAS));
+        else
+            set_value(ACTIVATION_FUNC(sum_val - BIAS));
+#else
         set_value(ACTIVATION_FUNC(sum_val - BIAS));
+#endif // OUTPUT_ACTIVATION_FUNC
+
     }
 }
 
@@ -101,8 +110,11 @@ our current cost function is sum of squared errors,
 */
 void Neuron::calc_output_gradient(double target)
 {
-
+#ifdef OUTPUT_ACTIVATION_FUNC
+    m_gradient = -2 * (target - m_activation_val) * OUTPUT_ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
+#else
     m_gradient = -2 * (target - m_activation_val) * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
+#endif // OUTPUT_ACTIVATION_FUNC
     debug_print("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
 }
 

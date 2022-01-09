@@ -96,12 +96,12 @@ int main()
     topo.push_back({.n_neurons=4, .kernel_size=5, .stride=2});
     topo.push_back({.n_neurons=7, .kernel_size=7, .stride=1});
     // topo.push_back({.n_neurons=3, .kernel_size=7, .stride=2});
-    topo.push_back({.n_neurons=4, .kernel_size=0}); // output neuron
+    topo.push_back({.n_neurons=4, .kernel_size=0, .pooling=ConvTopology::MAX_POOL}); // output neuron
 
     // std::vector<unsigned> layers{(unsigned)test_inputs[0].size(), 50, 20, 16, 10, (unsigned)test_outputs[0].size()};
     Net<ConvNeuron, ConvFrame> anton_nn(topo, {28,28});
 
-    unsigned test = 1;
+    unsigned test = 0;
 
     anton_nn.feed_forward(test_inputs[test]);
 

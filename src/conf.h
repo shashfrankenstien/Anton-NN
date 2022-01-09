@@ -54,7 +54,8 @@ inline double large_random_weights()
 #define ACTIVATION_FUNC Sigmoid
 #define ACTIVATION_DERIVATIVE_FUNC DSigmoid
 
-#define OUTPUT_ACTIVATION_FUNC
+#define OUTPUT_ACTIVATION_FUNC Sigmoid
+#define OUTPUT_ACTIVATION_DERIVATIVE_FUNC DSigmoid
 
 #define RANDOM_SEED 0
 #define BIAS 0.5
