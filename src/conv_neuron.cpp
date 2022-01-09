@@ -16,35 +16,34 @@ static unsigned calc_conv_output_dim(unsigned input_dim, unsigned kernel_size, u
 ConvFrame::ConvFrame()
 : rows(0),
 columns(0),
-m_data({}),
-m_pool_factor(0),
-m_pool_positions({})
+m_data({})
 {}
 
 ConvFrame::ConvFrame(unsigned nrows, unsigned ncols)
 : rows(nrows),
 columns(ncols),
-m_data(nrows*ncols, 0),
-m_pool_factor(0),
-m_pool_positions({})
+m_data(nrows*ncols, 0)
+{
+}
+
+ConvFrame::ConvFrame(unsigned nrows, unsigned ncols, double init_val)
+: rows(nrows),
+columns(ncols),
+m_data(nrows*ncols, init_val)
 {
 }
 
 ConvFrame::ConvFrame(const ConvFrame& other)
 : rows(other.rows),
 columns(other.columns),
-m_data(other.m_data),
-m_pool_factor(other.m_pool_factor),
-m_pool_positions(other.m_pool_positions)
+m_data(other.m_data)
 {
 }
 
 ConvFrame::ConvFrame(const std::vector<std::vector<double>> &other)
 : rows(other.size()),
 columns(other.front().size()),
-m_data(other.size()*other.front().size(), 0),
-m_pool_factor(0),
-m_pool_positions({})
+m_data(other.size()*other.front().size(), 0)
 {
     for (unsigned r=0; r < rows; r++)
         for (unsigned c=0; c < columns; c++)
@@ -58,9 +57,6 @@ void ConvFrame::reset_size(unsigned nrows, unsigned ncols)
     m_data.resize(nrows*ncols, 0);
     rows = nrows;
     columns = ncols;
-
-    m_pool_factor = 0;
-    m_pool_positions.clear();
 }
 
 unsigned ConvFrame::calc_idx(unsigned row, unsigned col) const
@@ -210,7 +206,8 @@ ConvFrame ConvFrame::convolve(const ConvFrame& kern, unsigned padding, unsigned 
     return out;
 }
 
-ConvFrame ConvFrame::max_pool(unsigned pool_factor) const
+
+ConvFrame ConvFrame::max_pool(unsigned pool_factor, std::vector<unsigned>& pool_positions) const
 {
     if (pool_factor <= 1) // can only perform pooling if the factor > 1
         return *this;
@@ -218,9 +215,13 @@ ConvFrame ConvFrame::max_pool(unsigned pool_factor) const
     unsigned pooled_rows = rows / pool_factor;
     unsigned pooled_columns = columns / pool_factor;
 
+    // to be able to calculate pool positions, out indexing should be based on relevant dimentions
+    //  - main reason to use orig_used_cols is for instances where odd frame sizes are pooled, which discards last column and / or last row
+    unsigned orig_used_cols = pooled_columns * pool_factor;
+
     ConvFrame out(pooled_rows, pooled_columns);
-    out.m_pool_factor = pool_factor;
-    out.m_pool_positions.resize(pooled_rows*pooled_columns, 0);
+    pool_positions.clear();
+    pool_positions.resize(pooled_rows*pooled_columns, 0);
 
     for (unsigned opr = 0; opr < pooled_rows; opr++) {
         for (unsigned opc = 0; opc < pooled_columns; opc++) {
@@ -236,16 +237,30 @@ ConvFrame ConvFrame::max_pool(unsigned pool_factor) const
                     double data_val = get(data_r, data_c);
                     if (data_val > max_val) {
                         max_val = data_val;
-                        pos = calc_idx(data_r, data_c);
+                        pos = (data_r * orig_used_cols) + data_c;
                     }
                 }
             }
             out(opr, opc) = max_val;
-            out.m_pool_positions[out.calc_idx(opr, opc)] = pos;
+            pool_positions[out.calc_idx(opr, opc)] = pos;
         }
     }
     return out;
 }
+
+
+ConvFrame ConvFrame::max_unpool(unsigned pool_factor, std::vector<unsigned>& pool_positions) const
+{
+    assert(pool_positions.size()==rows*columns);
+
+    ConvFrame out(rows * pool_factor, columns * pool_factor, 0);
+
+    for (unsigned idx = 0; idx < rows*columns; idx++) {
+        out(pool_positions[idx]) = get(idx);
+    }
+    return out;
+}
+
 
 
 ConvFrame ConvFrame::avg_pool(unsigned pool_factor) const
@@ -253,15 +268,10 @@ ConvFrame ConvFrame::avg_pool(unsigned pool_factor) const
     if (pool_factor <= 1) // can only perform pooling if the factor > 1
         return *this;
 
-    unsigned pooled_rows = rows / pool_factor;
-    unsigned pooled_columns = columns / pool_factor;
+    ConvFrame out(rows / pool_factor, columns / pool_factor);
 
-    ConvFrame out(pooled_rows, pooled_columns);
-    out.m_pool_factor = pool_factor;
-    out.m_pool_positions.resize(pooled_rows*pooled_columns, 0);
-
-    for (unsigned opr = 0; opr < pooled_rows; opr++) {
-        for (unsigned opc = 0; opc < pooled_columns; opc++) {
+    for (unsigned opr = 0; opr < out.rows; opr++) {
+        for (unsigned opc = 0; opc < out.columns; opc++) {
 
             // we can call avg() here
             unsigned st_row = (opr * pool_factor);
@@ -274,26 +284,17 @@ ConvFrame ConvFrame::avg_pool(unsigned pool_factor) const
 
 
 
-ConvFrame ConvFrame::max_unpool() const
-{
-
-}
-
-ConvFrame ConvFrame::max_unpool(unsigned pool_factor) const
-{
-
-}
-
-
-
-ConvFrame ConvFrame::avg_unpool() const
-{
-
-}
 
 ConvFrame ConvFrame::avg_unpool(unsigned pool_factor) const
 {
-
+    ConvFrame out(rows * pool_factor, columns * pool_factor, 0);
+    for (unsigned opr = 0; opr < out.rows; opr++) {
+        for (unsigned opc = 0; opc < out.columns; opc++) {
+            // floor division for position and distribute value
+            out(opr, opc) = get(opr / pool_factor, opc / pool_factor) / (pool_factor * pool_factor);
+        }
+    }
+    return out;
 }
 
 // apply a function onto all elements
@@ -356,17 +357,19 @@ m_kernel_conf(kernel_conf)
     } else {
         get_prev_layer_neuron(0).write_output_dimentions(m_in_dim);
     }
+
+    // ammend input sizes if input pooling is enabled on this neuron
+    if (kernel_conf.in_pooling != ConvTopology::NO_POOL && kernel_conf.in_pool_factor > 1) {
+        m_in_dim[0] /= kernel_conf.in_pool_factor;
+        m_in_dim[1] /= kernel_conf.in_pool_factor;
+    }
+
     m_out_dim[0] = calc_conv_output_dim(
         m_in_dim[0], m_kernel_conf.kernel_size,
         m_kernel_conf.padding, m_kernel_conf.stride);
     m_out_dim[1] = calc_conv_output_dim(
         m_in_dim[1], m_kernel_conf.kernel_size,
         m_kernel_conf.padding, m_kernel_conf.stride);
-
-    if (kernel_conf.pooling != ConvTopology::NO_POOL && kernel_conf.pool_factor > 1) {
-        m_out_dim[0] /= kernel_conf.pool_factor;
-        m_out_dim[1] /= kernel_conf.pool_factor;
-    }
 
     debug_print("%d x %d -> %d x %d", m_in_dim[0], m_in_dim[1], m_out_dim[0], m_out_dim[1]);
 }
@@ -394,32 +397,23 @@ void ConvNeuron::write_input_dimentions(unsigned (&dims)[2]) const
 }
 
 
-// performs pooling if required
-void ConvNeuron::set_value(const ConvFrame &val)
+// activated value has dimentions defined in m_in_dim
+void ConvNeuron::set_activated_value(const ConvFrame &val)
 {
     assert(val.rows==m_in_dim[0] && val.columns==m_in_dim[1]);
 
-    // check if pooling is required
-    if (m_kernel_conf.pooling == ConvTopology::MAX_POOL && m_kernel_conf.pool_factor > 1) {
-        debug_print("MAX POOL\n");
-        m_activation_val = val.max_pool(m_kernel_conf.pool_factor);
-        m_activation_val.print();
-    }
-    else if (m_kernel_conf.pooling == ConvTopology::AVG_POOL && m_kernel_conf.pool_factor > 1) {
-        debug_print("AVG POOL\n");
-        m_activation_val = val.avg_pool(m_kernel_conf.pool_factor);
-        m_activation_val.print();
-    }
-    else {
-        debug_print("NO POOL\n");
-        m_activation_val = val;
-    }
+    m_activation_val = val;
 }
 
 
-double ConvNeuron::get_value() const
+double ConvNeuron::get_activated_value() const
 {
     return m_activation_val.avg();
+}
+
+double ConvNeuron::get_error(double target) const
+{
+    return target - get_activated_value();
 }
 
 
@@ -463,7 +457,24 @@ void ConvNeuron::activate()
 #endif // OUTPUT_ACTIVATION_FUNC
 
         sum_val.print();
-        set_value(sum_val);
+
+        // check if pooling is required
+        if (m_kernel_conf.in_pooling == ConvTopology::MAX_POOL && m_kernel_conf.in_pool_factor > 1) {
+            debug_print("MAX POOL\n");
+            set_activated_value(sum_val.max_pool(m_kernel_conf.in_pool_factor, m_max_pool_positions));
+            m_activation_val.print();
+            // m_activation_val.max_unpool(m_kernel_conf.in_pool_factor, m_max_pool_positions).print();
+        }
+        else if (m_kernel_conf.in_pooling == ConvTopology::AVG_POOL && m_kernel_conf.in_pool_factor > 1) {
+            debug_print("AVG POOL\n");
+            set_activated_value(sum_val.avg_pool(m_kernel_conf.in_pool_factor));
+            m_activation_val.print();
+            // m_activation_val.avg_unpool(m_kernel_conf.in_pool_factor).print();
+        }
+        else {
+            debug_print("NO POOL\n");
+            set_activated_value(sum_val);
+        }
     }
 }
 
@@ -504,8 +515,17 @@ our current cost function is sum of squared errors,
 */
 void ConvNeuron::calc_output_gradient(double target)
 {
-    // m_gradient = -2 * (target - m_activation_val) * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
-    // debug_print("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
+    double act_val = m_activation_val.avg();
+#ifdef OUTPUT_ACTIVATION_DERIVATIVE_FUNC
+    double out_grad = -2 * (target - act_val) * OUTPUT_ACTIVATION_DERIVATIVE_FUNC(act_val);
+#else
+    double out_grad = -2 * (target - act_val) * ACTIVATION_DERIVATIVE_FUNC(act_val);
+#endif // OUTPUT_ACTIVATION_DERIVATIVE_FUNC
+
+    // since act_val is the avg for now, we need to distribute the gradient evenly back
+    double even_grad = out_grad / (m_activation_val.rows * m_activation_val.columns);
+    m_gradient = ConvFrame(m_activation_val.rows, m_activation_val.columns, even_grad);
+    m_gradient.print();
 }
 
 

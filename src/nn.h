@@ -34,9 +34,9 @@ class Neuron
     public:
         Neuron(unsigned idx, Layer<Neuron>* prev_layer, unsigned prev_layer_size, Layer<Neuron>* next_layer, unsigned next_layer_size);
 
-        virtual double get_value() const;
-        virtual void set_value(double val);
-        virtual double get_error(double out) const;
+        virtual double get_activated_value() const;
+        virtual void set_activated_value(double val);
+        virtual double get_error(double target) const;
 
         virtual void activate(); // feed forward action
         virtual void adjust_input_weights(); // back prop action
@@ -72,7 +72,7 @@ class RecurrentNeuron: public Neuron
     public:
         RecurrentNeuron(unsigned idx, Layer<RecurrentNeuron> *prev_layer, unsigned prev_layer_size, Layer<RecurrentNeuron> *next_layer, unsigned next_layer_size);
 
-        void set_value(double val) override;
+        void set_activated_value(double val) override;
 
     protected:
         double m_recur_activation_val;
@@ -97,6 +97,7 @@ class ConvFrame
 
         ConvFrame();
         ConvFrame(unsigned nrows, unsigned ncols);
+        ConvFrame(unsigned nrows, unsigned ncols, double init_val);
         ConvFrame(const ConvFrame& other);
         ConvFrame(const std::vector<std::vector<double>> &other);
         void reset_size(unsigned nrows, unsigned ncols);
@@ -122,13 +123,10 @@ class ConvFrame
 
         ConvFrame convolve(const ConvFrame& kern, unsigned padding, unsigned stride) const;
 
-        ConvFrame max_pool(unsigned pool_factor) const;
-        ConvFrame avg_pool(unsigned pool_factor) const;
+        ConvFrame max_pool(unsigned pool_factor, std::vector<unsigned>& pool_positions) const;
+        ConvFrame max_unpool(unsigned pool_factor, std::vector<unsigned>& pool_positions) const;
 
-        ConvFrame max_unpool() const;
-        ConvFrame avg_unpool() const;
-        // following methods allow for unpooling even if not originally pooled
-        ConvFrame max_unpool(unsigned pool_factor) const;
+        ConvFrame avg_pool(unsigned pool_factor) const;
         ConvFrame avg_unpool(unsigned pool_factor) const;
 
         // map a function on all values - used for activation
@@ -139,23 +137,17 @@ class ConvFrame
     private:
         unsigned calc_idx(unsigned row, unsigned col) const;
         std::vector<double> m_data;
-        /* positions are stored if the frame is pooled and needs to be unpooled
-            ex: unpooling max pooled frame will involve
-                - setting back the max value to the right position
-                - setting other positions to 0
-            however, average pooled frames will be divided across all postions
-        */
-        unsigned m_pool_factor; // if 0 or 1, frame is not pooled
-        std::vector<unsigned> m_pool_positions;
 };
 
 typedef struct {
     unsigned n_neurons;
-    unsigned kernel_size;
+    // input pooling
+    enum : char {NO_POOL, MAX_POOL, AVG_POOL} in_pooling = NO_POOL;
+    unsigned in_pool_factor = 2; // defaults to 2 because it's the most common
+    // output convolutions
+    unsigned kernel_size = 0;
     unsigned stride = 1;
     unsigned padding = 0;
-    enum : char {NO_POOL, MAX_POOL, AVG_POOL} pooling = NO_POOL;
-    unsigned pool_factor = 2; // defaults to 2 because it's the most common
 } ConvTopology;
 
 
@@ -170,8 +162,9 @@ class ConvNeuron: public Neuron
             Layer<ConvNeuron> *next_layer, unsigned next_layer_size,
             const ConvTopology &kernel_conf, const unsigned (&input_dimentions)[2]);
 
-        void set_value(const ConvFrame &val);
-        double get_value() const override;
+        void set_activated_value(const ConvFrame &val);
+        double get_activated_value() const override;
+        double get_error(double target) const override;
 
         void activate() override; // feed forward action
         void adjust_input_weights() override; // back prop action
@@ -195,6 +188,16 @@ class ConvNeuron: public Neuron
 
         ConvNeuron& get_next_layer_neuron(unsigned other_idx) override;
         ConvNeuron& get_prev_layer_neuron(unsigned other_idx) override;
+
+        /* positions are stored if m_activation_val is pooled and needs to be unpooled
+            ex: unpooling max pooled frame will involve
+                - setting back the max value to the right position
+                - setting other positions to 0
+            however, average pooled m_activation_val will be divided across all postions while unpooling
+            this variable is managed by ConvFrame when calling max_pool and max_unpool
+        */
+        std::vector<unsigned> m_max_pool_positions;
+
 };
 
 
@@ -312,7 +315,7 @@ void Net<N, I>::feed_forward(const std::vector<I> &inp)
     assert(inp.size() == input_layer.size());
 
     for (unsigned n = 0; n < inp.size(); n++) { // actuate the first layer
-        input_layer[n].set_value(inp[n]);
+        input_layer[n].set_activated_value(inp[n]);
     }
 
     // activate all Neurons one layer at a time
@@ -371,7 +374,7 @@ void Net<N, I>::get_results(std::vector<double> &results, double &avg_abs_error)
 {
     const Layer<N> &output_layer = m_layers.back();
     for (unsigned n = 0; n < output_layer.size(); n++) {
-        results.push_back(output_layer[n].get_value());
+        results.push_back(output_layer[n].get_activated_value());
     }
     avg_abs_error = m_avg_abs_error;
 }
@@ -381,7 +384,7 @@ void Net<N, I>::get_results(std::vector<double> &results, double &avg_abs_error,
 {
     const Layer<N> &output_layer = m_layers.back();
     for (unsigned n = 0; n < output_layer.size(); n++) {
-        results.push_back((output_layer[n].get_value() >= threshold) ? 1 : 0);
+        results.push_back((output_layer[n].get_activated_value() >= threshold) ? 1 : 0);
     }
     avg_abs_error = m_avg_abs_error;
 }

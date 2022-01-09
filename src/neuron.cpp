@@ -30,19 +30,19 @@ Neuron& Neuron::get_prev_layer_neuron(unsigned other_idx)
     return (*m_prev_layer)[other_idx];
 }
 
-void Neuron::set_value(double val)
+void Neuron::set_activated_value(double val)
 {
     m_activation_val = val;
 }
 
-double Neuron::get_value() const
+double Neuron::get_activated_value() const
 {
     return m_activation_val;
 }
 
-double Neuron::get_error(double out) const
+double Neuron::get_error(double target) const
 {
-    return out - get_value();
+    return target - get_activated_value();
 }
 
 
@@ -65,11 +65,11 @@ void Neuron::activate()
 // feature to set output activation function separately :?
 #ifdef OUTPUT_ACTIVATION_FUNC
         if (m_next_layer_size==0) // output layer
-            set_value(OUTPUT_ACTIVATION_FUNC(sum_val - BIAS));
+            set_activated_value(OUTPUT_ACTIVATION_FUNC(sum_val - BIAS));
         else
-            set_value(ACTIVATION_FUNC(sum_val - BIAS));
+            set_activated_value(ACTIVATION_FUNC(sum_val - BIAS));
 #else
-        set_value(ACTIVATION_FUNC(sum_val - BIAS));
+        set_activated_value(ACTIVATION_FUNC(sum_val - BIAS));
 #endif // OUTPUT_ACTIVATION_FUNC
 
     }
@@ -110,11 +110,11 @@ our current cost function is sum of squared errors,
 */
 void Neuron::calc_output_gradient(double target)
 {
-#ifdef OUTPUT_ACTIVATION_FUNC
+#ifdef OUTPUT_ACTIVATION_DERIVATIVE_FUNC
     m_gradient = -2 * (target - m_activation_val) * OUTPUT_ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
 #else
     m_gradient = -2 * (target - m_activation_val) * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
-#endif // OUTPUT_ACTIVATION_FUNC
+#endif // OUTPUT_ACTIVATION_DERIVATIVE_FUNC
     debug_print("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
 }
 
@@ -164,7 +164,7 @@ RecurrentNeuron& RecurrentNeuron::get_prev_layer_neuron(unsigned other_idx)
     return (*(Layer<RecurrentNeuron>*)m_prev_layer)[other_idx];
 }
 
-void RecurrentNeuron::set_value(double val)
+void RecurrentNeuron::set_activated_value(double val)
 {
     m_recur_activation_val = m_activation_val;
     m_activation_val = val;
