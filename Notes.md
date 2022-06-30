@@ -21,6 +21,7 @@
 
 
 ## TODO
-
+- Complete CNN
 - CNN input topology validation (because overflows are not handled yet. assert gets called)
+- CNN padding to avoid lossy pooling and convolution operations
 - remove all asserts

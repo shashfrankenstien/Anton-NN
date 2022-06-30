@@ -5,8 +5,15 @@ Based on the video tutorial by Dave Miller, information from 3Blue1Brown (Grant 
 - https://www.youtube.com/playlist?list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi
 - https://www.youtube.com/watch?v=vMh0zPT0tLI&t=68s
 
+CNN back propagation
+- https://www.youtube.com/watch?v=Pn7RK7tofPg
 
 ---
 Test with MNIST dataset
 
 using https://github.com/wichtounet/mnist.git to parse binary files
+
+
+---
+
+See [notes](Notes.md)

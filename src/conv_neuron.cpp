@@ -480,9 +480,57 @@ void ConvNeuron::activate()
 
 
 /*
+our current cost function is squared errors,
+ derivative of this wrt current neurons activation value will be the output gradient
+
+ - note: in this implementation:
+        the gradient is actually only -2 * (target - act_val).
+        but we multiply it with OUTPUT_ACTIVATION_DERIVATIVE_FUNC(act_val) to save some
+        computation while calculating hidden gradients
+*/
+void ConvNeuron::calc_output_gradient(double target)
+{
+    double act_val = m_activation_val.avg();
+#ifdef OUTPUT_ACTIVATION_DERIVATIVE_FUNC
+    double out_grad = -2 * (target - act_val) * OUTPUT_ACTIVATION_DERIVATIVE_FUNC(act_val);
+#else
+    double out_grad = -2 * (target - act_val) * ACTIVATION_DERIVATIVE_FUNC(act_val);
+#endif // OUTPUT_ACTIVATION_DERIVATIVE_FUNC
+
+    // since act_val is the avg for now, we need to distribute the gradient evenly back
+    double even_grad = out_grad / (m_activation_val.rows * m_activation_val.columns);
+    m_gradient = ConvFrame(m_activation_val.rows, m_activation_val.columns, even_grad);
+    m_gradient.print();
+}
+
+
+/*
+to find how the hidden neuron influences the cost,
+ we need to sum up all derivatives of weights going out of the neuron, times derivative of current activation value.
+ this can be calculated by using the previously calculated gradients on the next layer.
+
+ - note: in this implementation:
+        the gradient is actually just the sum.
+        but we multiply it with ACTIVATION_DERIVATIVE_FUNC(m_activation_val) to save some
+        computation while calculating other hidden gradients
+*/
+void ConvNeuron::calc_hidden_gradient()
+{
+    // if (m_next_layer_size != 0) {
+    //     double sum = 0;
+    //     for (unsigned n=0; n<m_next_layer_size; n++) {
+    //         sum += m_conn_weights[n] * get_next_layer_neuron(n).m_gradient;
+    //     }
+    //     m_gradient = sum * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
+    //     debug_print("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
+    // }
+}
+
+
+/*
 adjust weights for other neuron on the next layer based on it's calculated gradient and learning rate
+to obtain the adjustment to weights connecting to next layer neuron (other), we multiply current neuron activation, other gradient and learning rate
 since we are using stochastic gradient decent, we add in some optional momentum using m_old_conn_weight_deltas to reduce noisy adjustments
-we're using learning rate, previous neuron activation and current gradient
 */
 void ConvNeuron::adjust_weight_for(Neuron* other)
 {
@@ -509,41 +557,5 @@ void ConvNeuron::adjust_input_weights()
 }
 
 
-/*
-our current cost function is sum of squared errors,
- derivative of this wrt current neurons activation value will be the output gradient
-*/
-void ConvNeuron::calc_output_gradient(double target)
-{
-    double act_val = m_activation_val.avg();
-#ifdef OUTPUT_ACTIVATION_DERIVATIVE_FUNC
-    double out_grad = -2 * (target - act_val) * OUTPUT_ACTIVATION_DERIVATIVE_FUNC(act_val);
-#else
-    double out_grad = -2 * (target - act_val) * ACTIVATION_DERIVATIVE_FUNC(act_val);
-#endif // OUTPUT_ACTIVATION_DERIVATIVE_FUNC
-
-    // since act_val is the avg for now, we need to distribute the gradient evenly back
-    double even_grad = out_grad / (m_activation_val.rows * m_activation_val.columns);
-    m_gradient = ConvFrame(m_activation_val.rows, m_activation_val.columns, even_grad);
-    m_gradient.print();
-}
-
-
-/*
-to find how the hidden neuron influences the cost,
- we need to sum up all derivatives of weights going out of the neuron, times derivative of current activation value.
- this can be calculated by using the previously calculated gradients on the next layer.
-*/
-void ConvNeuron::calc_hidden_gradient()
-{
-    // if (m_next_layer_size != 0) {
-    //     double sum = 0;
-    //     for (unsigned n=0; n<m_next_layer_size; n++) {
-    //         sum += m_conn_weights[n] * get_next_layer_neuron(n).m_gradient;
-    //     }
-    //     m_gradient = sum * ACTIVATION_DERIVATIVE_FUNC(m_activation_val);
-    //     debug_print("\tg: %d - %f:%f\n", m_idx, m_activation_val, m_gradient);
-    // }
-}
 
 
